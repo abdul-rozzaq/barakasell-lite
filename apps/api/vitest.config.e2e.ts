@@ -11,5 +11,8 @@ export default defineConfig({
     // scan the whole table — running files in parallel causes cross-file
     // interference, so force them serial.
     fileParallelism: false,
+    // Ensures the fixed admin/cashier fixtures every spec logs in as exist
+    // before any test runs — see prisma/seed.e2e.ts.
+    globalSetup: ['./prisma/seed.e2e.ts'],
   },
 });
