@@ -1,0 +1,22 @@
+name: Build API
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "apps/api/**"
+
+jobs:
+  build:
+    uses: abdul-rozzaq/reusable-workflows/.github/workflows/docker-build-push.yml@main
+    with:
+      registry_name: ${{ vars.DOCKER_REGISTRY_NAME }}
+      registry_username: ${{ vars.DOCKER_REGISTRY_USERNAME }}
+      image_name: barakasell-lite-api
+      docker_context: apps/api
+      notify_telegram: true
+    secrets:
+      docker_registry_token: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
+      telegram_bot_token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      telegram_chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}

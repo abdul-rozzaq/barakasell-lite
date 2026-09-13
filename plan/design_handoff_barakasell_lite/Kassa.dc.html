@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;700&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<style>
+  *,*::before,*::after{box-sizing:border-box;}
+  body{margin:0;background:#dcdcde;}
+  @keyframes pulse{0%,100%{opacity:.5}50%{opacity:1}}
+  @keyframes toastIn{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}
+</style>
+</helmet>
+
+<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;gap:14px;padding:18px;font-family:Barlow,system-ui,sans-serif;">
+
+  <div style="width:100%;max-width:{{ frameW }}px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#e7e7ea;border:1px solid rgba(29,31,32,0.16);padding:8px 12px;">
+    <span style="font-family:'Barlow Condensed';font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:rgba(29,31,32,0.55);margin-right:6px;">Prototip boshqaruvi</span>
+    <button onclick="{{ h.resetAll }}" style="font-family:'Barlow Condensed';font-size:12px;padding:5px 10px;background:transparent;border:1px solid rgba(29,31,32,0.3);cursor:pointer;color:#1d1f20;">↺ Boshidan</button>
+    <button onclick="{{ h.togglePortrait }}" style="font-family:'Barlow Condensed';font-size:12px;padding:5px 10px;background:transparent;border:1px solid rgba(29,31,32,0.3);cursor:pointer;color:#1d1f20;">{{ portraitLabel }}</button>
+    <button onclick="{{ h.toggleOffline }}" style="font-family:'Barlow Condensed';font-size:12px;padding:5px 10px;background:{{ offlineBtnBg }};border:1px solid rgba(29,31,32,0.3);cursor:pointer;color:#1d1f20;">{{ offlineLabel }}</button>
+    <button onclick="{{ h.simulateWake }}" style="font-family:'Barlow Condensed';font-size:12px;padding:5px 10px;background:transparent;border:1px solid rgba(29,31,32,0.3);cursor:pointer;color:#1d1f20;">Uyqudan uyg'onish simulyatsiyasi</button>
+    <span style="width:1px;height:20px;background:rgba(29,31,32,0.25);"></span>
+    <span style="font-size:12px;color:rgba(29,31,32,0.55);">Bugungi sotuvlar holati:</span>
+    <button onclick="{{ h.cycleSalesListState }}" style="font-family:'Barlow Condensed';font-size:12px;padding:5px 10px;background:transparent;border:1px solid rgba(29,31,32,0.3);cursor:pointer;color:#1d1f20;">{{ salesListStateLabel }}</button>
+  </div>
+
+  <div style="position:relative;width:{{ frameW }}px;height:{{ frameH }}px;background:#f2f2f3;border:1px solid rgba(29,31,32,0.25);box-shadow:0 12px 32px rgba(29,31,32,0.22);overflow:hidden;color:#1d1f20;">
+
+    <!-- ===== LOGIN ===== -->
+    <sc-if value="{{ isLogin }}" hint-placeholder-val="{{ true }}">
+      <div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:20px;">
+        <div style="text-align:center;">
+          <div style="font-family:'Barlow Condensed';font-weight:700;font-size:26px;letter-spacing:-0.01em;">BarakaSELL</div>
+          <div style="font-size:12px;color:rgba(29,31,32,0.55);margin-top:2px;">Kassaga kirish</div>
+        </div>
+
+        <sc-if value="{{ noPendingCashier }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center;">
+            <sc-for list="{{ cashierTiles }}" as="c" hint-placeholder-count="2">
+              <button onclick="{{ c.onClick }}" style="width:170px;padding:18px 14px;background:#e9e9ea;border:1px solid rgba(29,31,32,0.16);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px;font-family:Barlow;color:#1d1f20;">
+                <div style="width:44px;height:44px;border-radius:50%;background:#d6ebff;color:#416180;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed';font-size:18px;font-weight:600;">{{ c.initial }}</div>
+                <div style="font-size:14px;font-weight:500;text-align:center;">{{ c.name }}</div>
+              </button>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ hasPendingCashier }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+            <button onclick="{{ h.backToCashierGrid }}" style="background:none;border:none;color:#416180;font-size:13px;cursor:pointer;align-self:flex-start;">‹ Orqaga</button>
+            <div style="font-family:'Barlow Condensed';font-size:16px;font-weight:600;">{{ pendingCashierName }}</div>
+            <div style="display:flex;gap:12px;">
+              <sc-for list="{{ pinDots }}" as="d" hint-placeholder-count="4">
+                <div style="width:14px;height:14px;border-radius:50%;border:1.5px solid #416180;background:{{ d.bg }};"></div>
+              </sc-for>
+            </div>
+            <sc-if value="{{ pinErrorShown }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size:12px;color:#a23b2e;">Noto'g'ri PIN kod</div>
+            </sc-if>
+            <div style="display:grid;grid-template-columns:repeat(3,58px);gap:8px;">
+              <sc-for list="{{ padKeys }}" as="k" hint-placeholder-count="12">
+                <button onclick="{{ k.onClick }}" style="height:48px;font-family:'Barlow Condensed';font-size:18px;font-weight:600;background:#e9e9ea;border:1px solid rgba(29,31,32,0.16);cursor:pointer;color:#1d1f20;">{{ k.label }}</button>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <!-- ===== SHIFT OPEN ===== -->
+    <sc-if value="{{ isShiftOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:32px;">
+        <div style="font-family:'Barlow Condensed';font-size:20px;font-weight:600;">Smenani ochish</div>
+        <div style="font-size:13px;color:rgba(29,31,32,0.6);text-align:center;max-width:320px;">Kassadagi boshlang'ich naqd pul miqdorini kiriting</div>
+        <div style="font-family:'Barlow Condensed';font-size:34px;font-weight:700;min-height:46px;">{{ openingCashDisplay }}</div>
+        <div style="display:grid;grid-template-columns:repeat(3,64px);gap:10px;">
+          <sc-for list="{{ padKeys }}" as="k" hint-placeholder-count="12">
+            <button onclick="{{ k.onClick }}" style="height:56px;font-family:'Barlow Condensed';font-size:20px;font-weight:600;background:#e9e9ea;border:1px solid rgba(29,31,32,0.16);cursor:pointer;color:#1d1f20;">{{ k.label }}</button>
+          </sc-for>
+        </div>
+        <button onclick="{{ h.startShift }}" disabled="{{ startShiftDisabled }}" style="position:relative;margin-top:6px;width:280px;height:52px;background:#5980a6;border:1px solid #5980a6;color:#f2f2f3;font-family:'Barlow Condensed';font-size:16px;font-weight:600;cursor:pointer;opacity:{{ startShiftOpacity }};">
+          <i style="position:absolute;top:-6px;left:-6px;width:11px;height:11px;"><i style="position:absolute;left:5px;top:0;width:1px;height:100%;background:rgba(29,31,32,0.55);"></i><i style="position:absolute;top:5px;left:0;width:100%;height:1px;background:rgba(29,31,32,0.55);"></i></i>
+          Smenani boshlash
+        </button>
+      </div>
+    </sc-if>
+
+    <!-- ===== SALE ===== -->
+    <sc-if value="{{ isSale }}" hint-placeholder-val="{{ false }}">
+      <div style="width:100%;height:100%;display:flex;flex-direction:column;">
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(29,31,32,0.16);background:#e9e9ea;flex:none;">
+          <button onclick="{{ h.openDrawer }}" style="width:38px;height:38px;background:transparent;border:1px solid rgba(29,31,32,0.16);cursor:pointer;font-size:16px;">☰</button>
+          <div style="font-family:'Barlow Condensed';font-weight:600;font-size:15px;">BarakaSELL</div>
+          <sc-if value="{{ offline }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:11px;padding:4px 9px;background:#f3e3c4;color:#7a5a12;border:1px solid #d1a94a;">OFFLINE · {{ pendingOffline }} ta yuborilmadi</div>
+          </sc-if>
+          <div style="margin-left:auto;font-size:13px;color:rgba(29,31,32,0.7);">{{ cashierNameDisplay }}</div>
+        </div>
+
+        <sc-if value="{{ stockNoticeVisible }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 14px;background:#f3ded9;color:#7a2e22;font-size:12px;flex:none;">
+            <span style="flex:1;">Diqqat: "{{ stockNoticeText }}" qoldig'i yo'q, lekin sotuv davom etadi</span>
+            <button onclick="{{ h.dismissStockNotice }}" style="background:none;border:none;color:#7a2e22;cursor:pointer;font-size:14px;">✕</button>
+          </div>
+        </sc-if>
+
+        <div style="flex:1;display:flex;flex-direction:{{ mainDir }};min-height:0;">
+          <div style="flex:1;display:flex;flex-direction:column;min-width:0;padding:12px 14px;gap:10px;overflow:hidden;">
+            <input type="text" placeholder="Nom yoki shtrix-kod bo'yicha qidirish..." value="{{ searchQuery }}" oninput="{{ h.onSearch }}" onfocus="{{ h.onSearchFocus }}" onblur="{{ h.onSearchBlur }}" style="width:100%;height:46px;padding:0 14px;font-size:15px;font-family:Barlow;background:#e9e9ea;border:1px solid rgba(29,31,32,0.16);color:#1d1f20;flex:none;" />
+            <div style="display:flex;gap:8px;overflow-x:auto;flex:none;">
+              <sc-for list="{{ categoryChips }}" as="cat" hint-placeholder-count="5">
+                <button onclick="{{ cat.onClick }}" style="flex:none;padding:8px 14px;font-size:13px;font-family:'Barlow Condensed';white-space:nowrap;background:{{ cat.bg }};color:{{ cat.color }};border:1px solid {{ cat.border }};cursor:pointer;">{{ cat.label }}</button>
+              </sc-for>
+            </div>
+            <div style="flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:9px;align-content:start;padding-bottom:{{ gridBottomPad }}px;">
+              <sc-for list="{{ displayProducts }}" as="p" hint-placeholder-count="8">
+                <button onclick="{{ p.onClick }}" style="text-align:left;padding:10px;background:#fff;border:1px solid rgba(29,31,32,0.16);cursor:pointer;display:flex;flex-direction:column;gap:6px;min-height:98px;font-family:Barlow;color:#1d1f20;">
+                  <div style="font-size:13px;font-weight:500;line-height:1.25;flex:1;">{{ p.name }}</div>
+                  <sc-if value="{{ p.stockTagVisible }}" hint-placeholder-val="{{ false }}">
+                    <div style="font-size:10px;padding:2px 6px;align-self:flex-start;border:1px solid {{ p.stockTagBorder }};color:{{ p.stockTagColor }};">{{ p.stockTagLabel }}</div>
+                  </sc-if>
+                  <div style="font-family:'Barlow Condensed';font-weight:600;font-size:15px;">{{ p.priceLabel }}</div>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="width:{{ cartWidth }}px;flex:none;display:flex;flex-direction:column;border-left:1px solid rgba(29,31,32,0.16);background:#e9e9ea;min-height:0;">
+            <div style="display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid rgba(29,31,32,0.16);flex:none;">
+              <div style="font-family:'Barlow Condensed';font-weight:600;font-size:14px;">Savat · {{ cartCount }}</div>
+              <sc-if value="{{ cartCount0 }}" hint-placeholder-val="{{ false }}">
+                <button onclick="{{ h.clearCart }}" style="margin-left:auto;background:none;border:none;color:#416180;font-size:12px;cursor:pointer;">Tozalash</button>
+              </sc-if>
+            </div>
+            <div style="flex:1;overflow-y:auto;padding:6px 10px;">
+              <sc-if value="{{ cartEmpty }}" hint-placeholder-val="{{ false }}">
+                <div style="text-align:center;color:rgba(29,31,32,0.45);font-size:13px;padding:30px 10px;">Savat bo'sh</div>
+              </sc-if>
+              <sc-for list="{{ cartItems }}" as="it" hint-placeholder-count="0">
+                <div style="padding:9px 4px;border-bottom:1px solid rgba(29,31,32,0.1);">
+                  <div style="display:flex;justify-content:space-between;gap:6px;">
+                    <div style="font-size:13px;font-weight:500;flex:1;">{{ it.name }}</div>
+                    <button onclick="{{ it.onDeleteTap }}" style="background:none;border:none;color:#a23b2e;cursor:pointer;font-size:13px;">✕</button>
+                  </div>
+                  <div style="font-size:11px;color:rgba(29,31,32,0.5);margin:2px 0 6px;">{{ it.unitLabel }}</div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <div style="display:flex;align-items:center;gap:6px;">
+                      <button onclick="{{ it.onMinus }}" style="width:28px;height:28px;background:#fff;border:1px solid rgba(29,31,32,0.2);cursor:pointer;">−</button>
+                      <button onclick="{{ it.onQtyTap }}" style="min-width:34px;height:28px;background:#fff;border:1px solid rgba(29,31,32,0.2);cursor:pointer;font-size:13px;">{{ it.qtyLabel }}</button>
+                      <button onclick="{{ it.onPlus }}" style="width:28px;height:28px;background:#fff;border:1px solid rgba(29,31,32,0.2);cursor:pointer;">+</button>
+                      <button onclick="{{ it.onDiscountTap }}" style="height:28px;padding:0 8px;background:#fff;border:1px solid rgba(29,31,32,0.2);cursor:pointer;font-size:11px;">%</button>
+                    </div>
+                    <div style="text-align:right;">
+                      <sc-if value="{{ it.discountTagVisible }}" hint-placeholder-val="{{ false }}">
+                        <div style="font-size:10px;color:#a23b2e;">-{{ it.discountTagLabel }}%</div>
+                      </sc-if>
+                      <div style="font-family:'Barlow Condensed';font-weight:600;font-size:14px;">{{ it.lineTotalLabel }}</div>
+                    </div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="flex:none;padding:12px 14px;border-top:1px solid rgba(29,31,32,0.16);">
+              <div style="display:flex;justify-content:space-between;font-size:12px;color:rgba(29,31,32,0.6);margin-bottom:4px;"><span>Oraliq jami</span><span>{{ subtotalLabel }}</span></div>
+              <sc-if value="{{ overallDiscountVisible }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;justify-content:space-between;font-size:12px;color:#a23b2e;margin-bottom:4px;"><span>Umumiy chegirma</span><span>-{{ overallDiscountLabel }}</span></div>
+              </sc-if>
+              <button onclick="{{ h.onOverallDiscountClick }}" style="background:none;border:none;color:#416180;font-size:12px;cursor:pointer;padding:0;margin-bottom:8px;">Umumiy chegirma qo'llash</button>
+              <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;">
+                <span style="font-family:'Barlow Condensed';font-size:15px;font-weight:600;">JAMI</span>
+                <span style="font-family:'Barlow Condensed';font-size:24px;font-weight:700;color:#416180;">{{ totalLabel }}</span>
+              </div>
+              <button onclick="{{ h.onPayClick }}" disabled="{{ payDisabled }}" style="position:relative;width:100%;height:52px;background:#5980a6;border:1px solid #5980a6;color:#f2f2f3;font-family:'Barlow Condensed';font-size:17px;font-weight:600;cursor:pointer;opacity:{{ payOpacity }};">
+                <i style="position:absolute;top:-6px;left:-6px;width:11px;height:11px;"><i style="position:absolute;left:5px;top:0;width:1px;height:100%;background:rgba(29,31,32,0.55);"></i><i style="position:absolute;top:5px;left:0;width:100%;height:1px;background:rgba(29,31,32,0.55);"></i></i>
+                TO'LOV
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <sc-if value="{{ keyboardOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;left:0;right:0;bottom:0;height:44%;background:#c9c9cc;border-top:1px solid rgba(29,31,32,0.3);display:flex;align-items:center;justify-content:center;">
+          <div style="font-family:ui-monospace,monospace;font-size:12px;color:rgba(29,31,32,0.55);">EKRAN KLAVIATURASI (simulyatsiya)</div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ unitPickerOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;inset:0;background:rgba(29,31,32,0.4);display:flex;align-items:flex-end;justify-content:center;" onclick="{{ h.closeUnitPicker }}">
+          <div style="width:100%;max-width:420px;background:#f2f2f3;border-top:1px solid rgba(29,31,32,0.2);padding:16px;" onclick="{{ h.stopClick }}">
+            <div style="font-family:'Barlow Condensed';font-weight:600;font-size:16px;margin-bottom:10px;">{{ unitPickerProductName }}</div>
+            <sc-for list="{{ unitPickerUnits }}" as="u" hint-placeholder-count="2">
+              <button onclick="{{ u.onClick }}" style="width:100%;display:flex;justify-content:space-between;padding:14px;background:#fff;border:1px solid rgba(29,31,32,0.16);margin-bottom:8px;cursor:pointer;font-family:Barlow;font-size:14px;color:#1d1f20;">
+                <span>{{ u.label }}</span><span style="font-weight:600;">{{ u.priceLabel }}</span>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ numPadOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;inset:0;background:rgba(29,31,32,0.4);display:flex;align-items:center;justify-content:center;">
+          <div style="background:#f2f2f3;border:1px solid rgba(29,31,32,0.2);padding:20px;display:flex;flex-direction:column;align-items:center;gap:14px;">
+            <div style="font-family:'Barlow Condensed';font-weight:600;font-size:15px;">{{ numPadTitle }}</div>
+            <div style="font-family:'Barlow Condensed';font-size:28px;font-weight:700;min-width:140px;text-align:center;">{{ numPadValueDisplay }}</div>
+            <div style="display:grid;grid-template-columns:repeat(3,58px);gap:8px;">
+              <sc-for list="{{ padKeys }}" as="k" hint-placeholder-count="12">
+                <button onclick="{{ k.onClick }}" style="height:50px;font-family:'Barlow Condensed';font-size:18px;font-weight:600;background:#e9e9ea;border:1px solid rgba(29,31,32,0.16);cursor:pointer;color:#1d1f20;">{{ k.label }}</button>
+              </sc-for>
+            </div>
+            <div style="display:flex;gap:10px;width:100%;">
+              <button onclick="{{ h.closeNumPad }}" style="flex:1;height:44px;background:transparent;border:1px solid rgba(29,31,32,0.25);cursor:pointer;font-family:'Barlow Condensed';font-size:14px;">Bekor qilish</button>
+              <button onclick="{{ h.confirmNumPad }}" style="flex:1;height:44px;background:#5980a6;color:#f2f2f3;border:1px solid #5980a6;cursor:pointer;font-family:'Barlow Condensed';font-size:14px;font-weight:600;">Tasdiqlash</button>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ pinModalOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;inset:0;background:rgba(29,31,32,0.5);display:flex;align-items:center;justify-content:center;">
+          <div style="position:relative;background:#f2f2f3;border:1px solid rgba(29,31,32,0.25);padding:26px;display:flex;flex-direction:column;align-items:center;gap:14px;box-shadow:0 12px 32px rgba(29,31,32,0.22);">
+            <i style="position:absolute;top:-6px;left:-6px;width:11px;height:11px;"><i style="position:absolute;left:5px;top:0;width:1px;height:100%;background:rgba(29,31,32,0.55);"></i><i style="position:absolute;top:5px;left:0;width:100%;height:1px;background:rgba(29,31,32,0.55);"></i></i>
+            <i style="position:absolute;top:-6px;right:-6px;width:11px;height:11px;"><i style="position:absolute;left:5px;top:0;width:1px;height:100%;background:rgba(29,31,32,0.55);"></i><i style="position:absolute;top:5px;left:0;width:100%;height:1px;background:rgba(29,31,32,0.55);"></i></i>
+            <i style="position:absolute;bottom:-6px;left:-6px;width:11px;height:11px;"><i style="position:absolute;left:5px;top:0;width:1px;height:100%;background:rgba(29,31,32,0.55);"></i><i style="position:absolute;top:5px;left:0;width:100%;height:1px;background:rgba(29,31,32,0.55);"></i></i>
+            <i style="position:absolute;bottom:-6px;right:-6px;width:11px;height:11px;"><i style="position:absolute;left:5px;top:0;width:1px;height:100%;background:rgba(29,31,32,0.55);"></i><i style="position:absolute;top:5px;left:0;width:100%;height:1px;background:rgba(29,31,32,0.55);"></i></i>
+            <div style="font-family:'Barlow Condensed';font-weight:600;font-size:15px;">{{ pinModalTitle }}</div>
+            <div style="font-size:12px;color:rgba(29,31,32,0.6);">PIN kodni kiriting</div>
+            <div style="display:flex;gap:12px;">
+              <sc-for list="{{ pinModalDots }}" as="d" hint-placeholder-count="4">
+                <div style="width:14px;height:14px;border-radius:50%;border:1.5px solid #416180;background:{{ d.bg }};"></div>
+              </sc-for>
+            </div>
+            <sc-if value="{{ pinModalErrorShown }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size:12px;color:#a23b2e;">Noto'g'ri PIN kod</div>
+            </sc-if>
+            <div style="display:grid;grid-template-columns:repeat(3,54px);gap:8px;">
+              <sc-for list="{{ padKeys }}" as="k" hint-placeholder-count="12">
+                <button onclick="{{ k.onClick }}" style="height:48px;font-family:'Barlow Condensed';font-size:17px;font-weight:600;background:#e9e9ea;border:1px solid rgba(29,31,32,0.16);cursor:pointer;color:#1d1f20;">{{ k.label }}</button>
+              </sc-for>
+            </div>
+            <button onclick="{{ h.closePinModal }}" style="background:none;border:none;color:rgba(29,31,32,0.5);font-size:12px;cursor:pointer;">Bekor qilish</button>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ drawerOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;inset:0;background:rgba(29,31,32,0.4);" onclick="{{ h.closeDrawer }}">
+          <div style="width:260px;height:100%;background:#f2f2f3;border-right:1px solid rgba(29,31,32,0.2);padding:16px;display:flex;flex-direction:column;gap:4px;" onclick="{{ h.stopClick }}">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+              <div style="font-family:'Barlow Condensed';font-weight:600;font-size:16px;">Menyu</div>
+              <button onclick="{{ h.closeDrawer }}" style="background:none;border:none;font-size:16px;cursor:pointer;">✕</button>
+            </div>
+            <button onclick="{{ h.goSalesToday }}" style="text-align:left;padding:12px 10px;background:transparent;border:none;cursor:pointer;font-size:14px;color:#1d1f20;">Bugungi sotuvlar</button>
+            <button onclick="{{ h.goReturns }}" style="text-align:left;padding:12px 10px;background:transparent;border:none;cursor:pointer;font-size:14px;color:#1d1f20;">Qaytarish</button>
+            <button onclick="{{ h.goCashMovement }}" style="text-align:left;padding:12px 10px;background:transparent;border:none;cursor:pointer;font-size:14px;color:#1d1f20;">Kassa harakati</button>
+            <button onclick="{{ h.goCreditCustomers }}" style="text-align:left;padding:12px 10px;background:transparent;border:none;cursor:pointer;font-size:14px;color:#1d1f20;">Nasiya mijozlari</button>
+            <button onclick="{{ h.goShiftClose }}" style="text-align:left;padding:12px 10px;background:transparent;border:none;cursor:pointer;font-size:14px;color:#1d1f20;">Smenani yopish</button>
+          </div>
+        </div>
+      </sc-if>
+    </sc-if>
+
+    <!-- ===== PAYMENT ===== -->
+    <sc-if value="{{ isPayment }}" hint-placeholder-val="{{ false }}">
+      <div style="width:100%;height:100%;display:flex;flex-direction:column;">
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(29,31,32,0.16);background:#e9e9ea;flex:none;">
+          <button onclick="{{ h.backFromPayment }}" style="background:none;border:none;color:#416180;font-size:14px;cursor:pointer;">‹ Sotuvga qaytish</button>
+          <div style="font-family:'Barlow Condensed';font-weight:600;font-size:15px;margin-left:6px;">To'lov</div>
+        </div>
+        <div style="flex:1;display:flex;gap:16px;padding:18px;overflow:auto;">
+          <div style="width:260px;flex:none;position:relative;border:1px solid rgba(29,31,32,0.2);padding:16px;height:fit-content;">
+            <i style="position:absolute;top:-6px;left:-6px;width:11px;height:11px;"><i style="position:absolute;left:5px;top:0;width:1px;height:100%;background:rgba(29,31,32,0.55);"></i><i style="position:absolute;top:5px;left:0;width:100%;height:1px;background:rgba(29,31,32,0.55);"></i></i>
+            <i style="position:absolute;top:-6px;right:-6px;width:11px;height:11px;"><i style="position:absolute;left:5px;top:0;width:1px;height:100%;background:rgba(29,31,32,0.55);"></i><i style="position:absolute;top:5px;left:0;width:100%;height:1px;background:rgba(29,31,32,0.55);"></i></i>
+            <i style="position:absolute;bottom:-6px;left:-6px;width:11px;height:11px;"><i style="position:absolute;left:5px;top:0;width:1px;height:100%;background:rgba(29,31,32,0.55);"></i><i style="position:absolute;top:5px;left:0;width:100%;height:1px;background:rgba(29,31,32,0.55);"></i></i>
+            <i style="position:absolute;bottom:-6px;right:-6px;width:11px;height:11px;"><i style="position:absolute;left:5px;top:0;width:1px;height:100%;background:rgba(29,31,32,0.55);"></i><i style="position:absolute;top:5px;left:0;width:100%;height:1px;background:rgba(29,31,32,0.55);"></i></i>
+            <div style="font-size:12px;color:rgba(29,31,32,0.55);margin-bottom:6px;">{{ cartCount }} qator</div>
+            <div style="font-family:'Barlow Condensed';font-size:13px;color:rgba(29,31,32,0.6);margin-bottom:2px;">TO'LOV UCHUN</div>
+            <div style="font-family:'Barlow Condensed';font-size:30px;font-weight:700;color:#416180;">{{ totalLabel }}</div>
+          </div>
+
+          <div style="flex:1;display:flex;flex-direction:column;gap:14px;min-width:280px;">
+            <div style="display:inline-flex;border:1px solid rgba(29,31,32,0.2);width:fit-content;">
+              <button onclick="{{ h.setModeMixed }}" style="padding:9px 16px;font-size:13px;font-family:'Barlow Condensed';cursor:pointer;border:none;background:{{ mixedBg }};color:{{ mixedColor }};">Aralash to'lov</button>
+              <button onclick="{{ h.setModeCredit }}" style="padding:9px 16px;font-size:13px;font-family:'Barlow Condensed';cursor:pointer;border:none;border-left:1px solid rgba(29,31,32,0.2);background:{{ creditBg }};color:{{ creditColor }};">Nasiya</button>
+            </div>
+
+            <sc-if value="{{ isMixedMode }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;flex-direction:column;gap:10px;">
+                <sc-for list="{{ tenderRows }}" as="t" hint-placeholder-count="3">
+                  <button onclick="{{ t.onTap }}" style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;background:#e9e9ea;border:1px solid rgba(29,31,32,0.16);cursor:pointer;font-family:Barlow;color:#1d1f20;">
+                    <span style="font-size:14px;">{{ t.label }}</span>
+                    <span style="font-family:'Barlow Condensed';font-size:17px;font-weight:600;">{{ t.valueLabel }}</span>
+                  </button>
+                </sc-for>
+                <div style="display:flex;justify-content:space-between;font-size:13px;padding-top:6px;">
+                  <span style="color:rgba(29,31,32,0.6);">To'langan</span><span style="font-weight:600;">{{ paidLabel }}</span>
+                </div>
+                <sc-if value="{{ remainingVisible }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;justify-content:space-between;font-size:13px;color:#a23b2e;"><span>Qolgan</span><span>{{ remainingLabel }}</span></div>
+                </sc-if>
+                <sc-if value="{{ changeVisible }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;justify-content:space-between;font-size:13px;color:#2c6b3f;"><span>Qaytim (naqd)</span><span>{{ changeLabel }}</span></div>
+                </sc-if>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ isCredit }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:10px;">
+                <input type="text" placeholder="Mijozni qidirish..." value="{{ creditSearch }}" oninput="{{ h.onCreditSearch }}" style="width:100%;height:44px;padding:0 12px;font-size:14px;background:#e9e9ea;border:1px solid rgba(29,31,32,0.16);color:#1d1f20;" />
+                <div style="display:flex;flex-direction:column;gap:6px;max-height:220px;overflow:auto;">
+                  <sc-for list="{{ creditCustomersFiltered }}" as="cu" hint-placeholder-count="2">
+                    <button onclick="{{ cu.onClick }}" style="display:flex;justify-content:space-between;padding:12px 14px;background:{{ cu.bg }};border:1px solid {{ cu.border }};cursor:pointer;font-family:Barlow;text-align:left;">
+                      <span>
+                        <div style="font-size:14px;font-weight:500;color:#1d1f20;">{{ cu.name }}</div>
+                        <div style="font-size:11px;color:rgba(29,31,32,0.5);">{{ cu.phone }}</div>
+                      </span>
+                      <span style="font-family:'Barlow Condensed';font-size:13px;color:#a23b2e;align-self:center;">{{ cu.debtLabel }}</span>
+                    </button>
+                  </sc-for>
+                </div>
+                <sc-if value="{{ creditCustomerSelected }}" hint-placeholder-val="{{ false }}">
+                  <div style="font-size:12px;color:rgba(29,31,32,0.65);">Yangi qarz qo'shiladi: <b>{{ totalLabel }}</b> · Jami qarz bo'ladi: <b>{{ newDebtLabel }}</b></div>
+                </sc-if>
+              </div>
+            </sc-if>
+
+            <button onclick="{{ h.confirmPay }}" disabled="{{ confirmPayDisabled }}" style="margin-top:auto;width:100%;height:54px;background:#5980a6;border:1px solid #5980a6;color:#f2f2f3;font-family:'Barlow Condensed';font-size:16px;font-weight:600;cursor:pointer;opacity:{{ confirmPayOpacity }};">Sotuvni yakunlash</button>
+          </div>
+        </div>
+      </div>
+
+      <sc-if value="{{ numPadOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;inset:0;background:rgba(29,31,32,0.4);display:flex;align-items:center;justify-content:center;">
+          <div style="background:#f2f2f3;border:1px solid rgba(29,31,32,0.2);padding:20px;display:flex;flex-direction:column;align-items:center;gap:14px;">
+            <div style="font-family:'Barlow Condensed';font-weight:600;font-size:15px;">{{ numPadTitle }}</div>
+            <div style="font-family:'Barlow Condensed';font-size:28px;font-weight:700;min-width:140px;text-align:center;">{{ numPadValueDisplay }}</div>
+            <div style="display:grid;grid-template-columns:repeat(3,58px);gap:8px;">
+              <sc-for list="{{ padKeys }}" as="k" hint-placeholder-count="12">
+                <button onclick="{{ k.onClick }}" style="height:50px;font-family:'Barlow Condensed';font-size:18px;font-weight:600;background:#e9e9ea;border:1px solid rgba(29,31,32,0.16);cursor:pointer;color:#1d1f20;">{{ k.label }}</button>
+              </sc-for>
+            </div>
+            <div style="display:flex;gap:10px;width:100%;">
+              <button onclick="{{ h.closeNumPad }}" style="flex:1;height:44px;background:transparent;border:1px solid rgba(29,31,32,0.25);cursor:pointer;font-family:'Barlow Condensed';font-size:14px;">Bekor qilish</button>
+              <button onclick="{{ h.confirmNumPad }}" style="flex:1;height:44px;background:#5980a6;color:#f2f2f3;border:1px solid #5980a6;cursor:pointer;font-family:'Barlow Condensed';font-size:14px;font-weight:600;">Tasdiqlash</button>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+    </sc-if>
+
+    <!-- ===== SALE COMPLETE ===== -->
+    <sc-if value="{{ isSaleComplete }}" hint-placeholder-val="{{ false }}">
+      <div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;">
+        <div style="position:relative;border:1px solid rgba(29,31,32,0.2);padding:36px 44px;display:flex;flex-direction:column;align-items:center;gap:12px;">
+          <i style="position:absolute;top:-6px;left:-6px;width:11px;height:11px;"><i style="position:absolute;left:5px;top:0;width:1px;height:100%;background:rgba(29,31,32,0.55);"></i><i style="position:absolute;top:5px;left:0;width:100%;height:1px;background:rgba(29,31,32,0.55);"></i></i>
+          <i style="position:absolute;top:-6px;right:-6px;width:11px;height:11px;"><i style="position:absolute;left:5px;top:0;width:1px;height:100%;background:rgba(29,31,32,0.55);"></i><i style="position:absolute;top:5px;left:0;width:100%;height:1px;background:rgba(29,31,32,0.55);"></i></i>
+          <i style="position:absolute;bottom:-6px;left:-6px;width:11px;height:11px;"><i style="position:absolute;left:5px;top:0;width:1px;height:100%;background:rgba(29,31,32,0.55);"></i><i style="position:absolute;top:5px;left:0;width:100%;height:1px;background:rgba(29,31,32,0.55);"></i></i>
+          <i style="position:absolute;bottom:-6px;right:-6px;width:11px;height:11px;"><i style="position:absolute;left:5px;top:0;width:1px;height:100%;background:rgba(29,31,32,0.55);"></i><i style="position:absolute;top:5px;left:0;width:100%;height:1px;background:rgba(29,31,32,0.55);"></i></i>
+          <div style="width:56px;height:56px;border-radius:50%;background:#d6ebff;color:#416180;display:flex;align-items:center;justify-content:center;font-size:26px;">✓</div>
+          <div style="font-family:'Barlow Condensed';font-size:36px;font-weight:700;color:#416180;">{{ saleCode }}</div>
+          <div style="font-family:'Barlow Condensed';font-size:20px;font-weight:600;">{{ saleTotalLabel }}</div>
+          <div style="font-size:13px;color:rgba(29,31,32,0.55);">{{ saleMethodLabel }}</div>
+        </div>
+        <button onclick="{{ h.newSale }}" style="width:260px;height:52px;background:#5980a6;border:1px solid #5980a6;color:#f2f2f3;font-family:'Barlow Condensed';font-size:16px;font-weight:600;cursor:pointer;">Yangi sotuv</button>
+        <button onclick="{{ h.goSalesToday }}" style="background:none;border:none;color:#416180;font-size:13px;cursor:pointer;">Bugungi sotuvlarni ko'rish</button>
+      </div>
+    </sc-if>
+
+    <!-- ===== SALES TODAY ===== -->
+    <sc-if value="{{ isSalesToday }}" hint-placeholder-val="{{ false }}">
+      <div style="width:100%;height:100%;display:flex;flex-direction:column;">
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(29,31,32,0.16);background:#e9e9ea;flex:none;">
+          <button onclick="{{ h.backFromSalesToday }}" style="background:none;border:none;color:#416180;font-size:14px;cursor:pointer;">‹ Orqaga</button>
+          <div style="font-family:'Barlow Condensed';font-weight:600;font-size:15px;margin-left:6px;">Bugungi sotuvlar</div>
+        </div>
+        <div style="flex:1;overflow:auto;padding:14px;">
+
+          <sc-if value="{{ salesLoading }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div style="height:58px;background:#e0e0e2;animation:pulse 1.2s infinite;"></div>
+              <div style="height:58px;background:#e0e0e2;animation:pulse 1.2s infinite;"></div>
+              <div style="height:58px;background:#e0e0e2;animation:pulse 1.2s infinite;"></div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ salesEmpty }}" hint-placeholder-val="{{ false }}">
+            <div style="text-align:center;color:rgba(29,31,32,0.45);font-size:14px;padding:60px 10px;">Hali sotuvlar yo'q</div>
+          </sc-if>
+
+          <sc-if value="{{ salesErrorState }}" hint-placeholder-val="{{ false }}">
+            <div style="text-align:center;color:rgba(29,31,32,0.6);font-size:14px;padding:60px 10px;display:flex;flex-direction:column;align-items:center;gap:12px;">
+              <div>Ro'yxatni yuklab bo'lmadi</div>
+              <button onclick="{{ h.cycleSalesListState }}" style="padding:9px 18px;background:transparent;border:1px solid rgba(29,31,32,0.3);cursor:pointer;font-family:'Barlow Condensed';font-size:13px;">Qayta urinish</button>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ salesOk }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <sc-for list="{{ salesDisplay }}" as="s" hint-placeholder-count="3">
+                <div style="border:1px solid rgba(29,31,32,0.16);background:#fff;">
+                  <button onclick="{{ s.onToggle }}" style="width:100%;display:flex;align-items:center;gap:10px;padding:12px 14px;background:none;border:none;cursor:pointer;text-align:left;font-family:Barlow;color:#1d1f20;">
+                    <div style="font-family:'Barlow Condensed';font-weight:600;font-size:14px;">{{ s.code }}</div>
+                    <div style="font-size:12px;color:rgba(29,31,32,0.5);">{{ s.timeLabel }}</div>
+                    <div style="margin-left:auto;font-size:11px;padding:2px 8px;border:1px solid #b5d9fd;color:#416180;">{{ s.methodLabel }}</div>
+                    <div style="font-family:'Barlow Condensed';font-weight:600;font-size:15px;min-width:90px;text-align:right;">{{ s.totalLabel }}</div>
+                  </button>
+                  <sc-if value="{{ s.expanded }}" hint-placeholder-val="{{ false }}">
+                    <div style="padding:10px 14px 14px;border-top:1px solid rgba(29,31,32,0.1);display:flex;flex-direction:column;gap:6px;">
+                      <sc-for list="{{ s.itemsDisplay }}" as="li" hint-placeholder-count="2">
+                        <div style="display:flex;justify-content:space-between;font-size:12px;color:rgba(29,31,32,0.7);">
+                          <span>{{ li.name }} × {{ li.qtyLabel }}</span><span>{{ li.sumLabel }}</span>
+                        </div>
+                      </sc-for>
+                      <div style="display:flex;justify-content:flex-end;margin-top:6px;">
+                        <button onclick="{{ s.onReturn }}" style="padding:8px 14px;background:transparent;border:1px solid rgba(29,31,32,0.3);font-family:'Barlow Condensed';font-size:12px;cursor:pointer;color:#1d1f20;">Qaytarish</button>
+                      </div>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ===== RETURNS ===== -->
+    <sc-if value="{{ isReturns }}" hint-placeholder-val="{{ false }}">
+      <div style="width:100%;height:100%;display:flex;flex-direction:column;">
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(29,31,32,0.16);background:#e9e9ea;flex:none;">
+          <button onclick="{{ h.backFromReturns }}" style="background:none;border:none;color:#416180;font-size:14px;cursor:pointer;">‹ Orqaga</button>
+          <div style="font-family:'Barlow Condensed';font-weight:600;font-size:15px;margin-left:6px;">Qaytarish</div>
+        </div>
+        <div style="flex:1;overflow:auto;padding:14px;">
+          <sc-if value="{{ returnSaleNotSelected }}" hint-placeholder-val="{{ true }}">
+            <input type="text" placeholder="Sotuv kodi bo'yicha qidirish (masalan #4821)" value="{{ returnSearch }}" oninput="{{ h.onReturnSearch }}" style="width:100%;height:46px;padding:0 14px;font-size:15px;background:#e9e9ea;border:1px solid rgba(29,31,32,0.16);color:#1d1f20;margin-bottom:12px;" />
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <sc-for list="{{ returnSaleOptions }}" as="rs" hint-placeholder-count="3">
+                <button onclick="{{ rs.onClick }}" style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:#fff;border:1px solid rgba(29,31,32,0.16);cursor:pointer;font-family:Barlow;text-align:left;color:#1d1f20;">
+                  <div style="font-family:'Barlow Condensed';font-weight:600;font-size:14px;">{{ rs.code }}</div>
+                  <div style="font-size:12px;color:rgba(29,31,32,0.5);">{{ rs.timeLabel }}</div>
+                  <div style="margin-left:auto;font-family:'Barlow Condensed';font-weight:600;">{{ rs.totalLabel }}</div>
+                </button>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{ returnSaleSelected }}" hint-placeholder-val="{{ false }}">
+            <button onclick="{{ h.clearReturnSale }}" style="background:none;border:none;color:#416180;font-size:13px;cursor:pointer;margin-bottom:10px;padding:0;">‹ Boshqa sotuvni tanlash</button>
+            <div style="font-family:'Barlow Condensed';font-weight:600;font-size:16px;margin-bottom:10px;">{{ returnSaleCode }} · {{ returnSaleTime }}</div>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <sc-for list="{{ returnItems }}" as="ri" hint-placeholder-count="3">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#fff;border:1px solid rgba(29,31,32,0.16);">
+                  <div>
+                    <div style="font-size:13px;font-weight:500;">{{ ri.name }}</div>
+                    <div style="font-size:11px;color:rgba(29,31,32,0.5);">sotilgan: {{ ri.originalQtyLabel }} · {{ ri.priceLabel }}</div>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <button onclick="{{ ri.onMinus }}" style="width:28px;height:28px;background:#e9e9ea;border:1px solid rgba(29,31,32,0.2);cursor:pointer;">−</button>
+                    <div style="min-width:30px;text-align:center;font-size:13px;">{{ ri.returnQtyLabel }}</div>
+                    <button onclick="{{ ri.onPlus }}" style="width:28px;height:28px;background:#e9e9ea;border:1px solid rgba(29,31,32,0.2);cursor:pointer;">+</button>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin:16px 0;">
+              <span style="font-family:'Barlow Condensed';font-size:15px;font-weight:600;">Qaytariladigan summa</span>
+              <span style="font-family:'Barlow Condensed';font-size:22px;font-weight:700;color:#a23b2e;">{{ returnTotalLabel }}</span>
+            </div>
+            <button onclick="{{ h.confirmReturn }}" disabled="{{ returnConfirmDisabled }}" style="width:100%;height:52px;background:#a23b2e;border:1px solid #a23b2e;color:#f2f2f3;font-family:'Barlow Condensed';font-size:16px;font-weight:600;cursor:pointer;opacity:{{ returnConfirmOpacity }};">Qaytarishni tasdiqlash</button>
+          </sc-if>
+        </div>
+      </div>
+
+      <sc-if value="{{ pinModalOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;inset:0;background:rgba(29,31,32,0.5);display:flex;align-items:center;justify-content:center;">
+          <div style="position:relative;background:#f2f2f3;border:1px solid rgba(29,31,32,0.25);padding:26px;display:flex;flex-direction:column;align-items:center;gap:14px;box-shadow:0 12px 32px rgba(29,31,32,0.22);">
+            <div style="font-family:'Barlow Condensed';font-weight:600;font-size:15px;">{{ pinModalTitle }}</div>
+            <div style="font-size:12px;color:rgba(29,31,32,0.6);">PIN kodni kiriting</div>
+            <div style="display:flex;gap:12px;">
+              <sc-for list="{{ pinModalDots }}" as="d" hint-placeholder-count="4">
+                <div style="width:14px;height:14px;border-radius:50%;border:1.5px solid #416180;background:{{ d.bg }};"></div>
+              </sc-for>
+            </div>
+            <sc-if value="{{ pinModalErrorShown }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size:12px;color:#a23b2e;">Noto'g'ri PIN kod</div>
+            </sc-if>
+            <div style="display:grid;grid-template-columns:repeat(3,54px);gap:8px;">
+              <sc-for list="{{ padKeys }}" as="k" hint-placeholder-count="12">
+                <button onclick="{{ k.onClick }}" style="height:48px;font-family:'Barlow Condensed';font-size:17px;font-weight:600;background:#e9e9ea;border:1px solid rgba(29,31,32,0.16);cursor:pointer;color:#1d1f20;">{{ k.label }}</button>
+              </sc-for>
+            </div>
+            <button onclick="{{ h.closePinModal }}" style="background:none;border:none;color:rgba(29,31,32,0.5);font-size:12px;cursor:pointer;">Bekor qilish</button>
+          </div>
+        </div>
+      </sc-if>
+    </sc-if>
+
+    <!-- ===== CASH MOVEMENT ===== -->
+    <sc-if value="{{ isCashMovement }}" hint-placeholder-val="{{ false }}">
+      <div style="width:100%;height:100%;display:flex;flex-direction:column;">
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(29,31,32,0.16);background:#e9e9ea;flex:none;">
+          <button onclick="{{ h.backFromCashMovement }}" style="background:none;border:none;color:#416180;font-size:14px;cursor:pointer;">‹ Orqaga</button>
+          <div style="font-family:'Barlow Condensed';font-weight:600;font-size:15px;margin-left:6px;">Kassa harakati</div>
+        </div>
+        <div style="flex:1;overflow:auto;padding:20px;display:flex;flex-direction:column;gap:16px;max-width:420px;">
+          <div style="display:inline-flex;border:1px solid rgba(29,31,32,0.2);width:fit-content;">
+            <button onclick="{{ h.setCmOut }}" style="padding:10px 16px;font-size:13px;font-family:'Barlow Condensed';cursor:pointer;border:none;background:{{ cmOutBg }};color:{{ cmOutColor }};">Pul olib chiqish</button>
+            <button onclick="{{ h.setCmIn }}" style="padding:10px 16px;font-size:13px;font-family:'Barlow Condensed';cursor:pointer;border:none;border-left:1px solid rgba(29,31,32,0.2);background:{{ cmInBg }};color:{{ cmInColor }};">Pul kiritish</button>
+          </div>
+          <button onclick="{{ h.openCmAmountPad }}" style="text-align:left;padding:14px 16px;background:#e9e9ea;border:1px solid rgba(29,31,32,0.16);cursor:pointer;">
+            <div style="font-size:11px;color:rgba(29,31,32,0.55);margin-bottom:4px;">Summa</div>
+            <div style="font-family:'Barlow Condensed';font-size:22px;font-weight:700;">{{ cmAmountLabel }}</div>
+          </button>
+          <div class="field">
+            <label style="display:block;font-size:12px;margin-bottom:5px;color:rgba(29,31,32,0.7);">Sabab</label>
+            <input type="text" placeholder="masalan: naqd pulni bankka topshirish" value="{{ cmReason }}" oninput="{{ h.onCmReason }}" style="width:100%;height:44px;padding:0 12px;font-size:14px;background:#e9e9ea;border:1px solid rgba(29,31,32,0.16);color:#1d1f20;" />
+          </div>
+          <button onclick="{{ h.confirmCashMovement }}" disabled="{{ cmConfirmDisabled }}" style="width:100%;height:50px;background:#5980a6;border:1px solid #5980a6;color:#f2f2f3;font-family:'Barlow Condensed';font-size:15px;font-weight:600;cursor:pointer;opacity:{{ cmConfirmOpacity }};">Tasdiqlash</button>
+
+          <div style="font-family:'Barlow Condensed';font-weight:600;font-size:14px;margin-top:10px;">Bugungi harakatlar</div>
+          <sc-if value="{{ cmHistoryEmpty }}" hint-placeholder-val="{{ true }}">
+            <div style="font-size:13px;color:rgba(29,31,32,0.45);">Hali harakat yo'q</div>
+          </sc-if>
+          <sc-for list="{{ cmHistory }}" as="cmh" hint-placeholder-count="0">
+            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(29,31,32,0.1);font-size:13px;">
+              <span>{{ cmh.reason }}</span><span style="font-weight:600;color:{{ cmh.color }};">{{ cmh.amountLabel }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <sc-if value="{{ numPadOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;inset:0;background:rgba(29,31,32,0.4);display:flex;align-items:center;justify-content:center;">
+          <div style="background:#f2f2f3;border:1px solid rgba(29,31,32,0.2);padding:20px;display:flex;flex-direction:column;align-items:center;gap:14px;">
+            <div style="font-family:'Barlow Condensed';font-weight:600;font-size:15px;">{{ numPadTitle }}</div>
+            <div style="font-family:'Barlow Condensed';font-size:28px;font-weight:700;min-width:140px;text-align:center;">{{ numPadValueDisplay }}</div>
+            <div style="display:grid;grid-template-columns:repeat(3,58px);gap:8px;">
+              <sc-for list="{{ padKeys }}" as="k" hint-placeholder-count="12">
+                <button onclick="{{ k.onClick }}" style="height:50px;font-family:'Barlow Condensed';font-size:18px;font-weight:600;background:#e9e9ea;border:1px solid rgba(29,31,32,0.16);cursor:pointer;color:#1d1f20;">{{ k.label }}</button>
+              </sc-for>
+            </div>
+            <div style="display:flex;gap:10px;width:100%;">
+              <button onclick="{{ h.closeNumPad }}" style="flex:1;height:44px;background:transparent;border:1px solid rgba(29,31,32,0.25);cursor:pointer;font-family:'Barlow Condensed';font-size:14px;">Bekor qilish</button>
+              <button onclick="{{ h.confirmNumPad }}" style="flex:1;height:44px;background:#5980a6;color:#f2f2f3;border:1px solid #5980a6;cursor:pointer;font-family:'Barlow Condensed';font-size:14px;font-weight:600;">Tasdiqlash</button>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ pinModalOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;inset:0;background:rgba(29,31,32,0.5);display:flex;align-items:center;justify-content:center;">
+          <div style="position:relative;background:#f2f2f3;border:1px solid rgba(29,31,32,0.25);padding:26px;display:flex;flex-direction:column;align-items:center;gap:14px;box-shadow:0 12px 32px rgba(29,31,32,0.22);">
+            <div style="font-family:'Barlow Condensed';font-weight:600;font-size:15px;">{{ pinModalTitle }}</div>
+            <div style="font-size:12px;color:rgba(29,31,32,0.6);">PIN kodni kiriting</div>
+            <div style="display:flex;gap:12px;">
+              <sc-for list="{{ pinModalDots }}" as="d" hint-placeholder-count="4">
+                <div style="width:14px;height:14px;border-radius:50%;border:1.5px solid #416180;background:{{ d.bg }};"></div>
+              </sc-for>
+            </div>
+            <sc-if value="{{ pinModalErrorShown }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size:12px;color:#a23b2e;">Noto'g'ri PIN kod</div>
+            </sc-if>
+            <div style="display:grid;grid-template-columns:repeat(3,54px);gap:8px;">
+              <sc-for list="{{ padKeys }}" as="k" hint-placeholder-count="12">
+                <button onclick="{{ k.onClick }}" style="height:48px;font-family:'Barlow Condensed';font-size:17px;font-weight:600;background:#e9e9ea;border:1px solid rgba(29,31,32,0.16);cursor:pointer;color:#1d1f20;">{{ k.label }}</button>
+              </sc-for>
+            </div>
+            <button onclick="{{ h.closePinModal }}" style="background:none;border:none;color:rgba(29,31,32,0.5);font-size:12px;cursor:pointer;">Bekor qilish</button>
+          </div>
+        </div>
+      </sc-if>
+    </sc-if>
+
+    <!-- ===== SHIFT CLOSE ===== -->
+    <sc-if value="{{ isShiftClose }}" hint-placeholder-val="{{ false }}">
+      <div style="width:100%;height:100%;display:flex;flex-direction:column;">
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(29,31,32,0.16);background:#e9e9ea;flex:none;">
+          <button onclick="{{ h.backFromShiftClose }}" style="background:none;border:none;color:#416180;font-size:14px;cursor:pointer;">‹ Orqaga</button>
+          <div style="font-family:'Barlow Condensed';font-weight:600;font-size:15px;margin-left:6px;">Smenani yopish</div>
+        </div>
+        <div style="flex:1;overflow:auto;padding:20px;display:flex;flex-direction:column;gap:14px;max-width:420px;">
+          <div style="display:flex;justify-content:space-between;font-size:14px;padding:10px 0;border-bottom:1px solid rgba(29,31,32,0.1);"><span style="color:rgba(29,31,32,0.6);">Kutilgan naqd</span><span style="font-family:'Barlow Condensed';font-weight:600;">{{ expectedCashLabel }}</span></div>
+          <button onclick="{{ h.openCountedCashPad }}" style="text-align:left;padding:14px 16px;background:#e9e9ea;border:1px solid rgba(29,31,32,0.16);cursor:pointer;">
+            <div style="font-size:11px;color:rgba(29,31,32,0.55);margin-bottom:4px;">Sanalgan naqd</div>
+            <div style="font-family:'Barlow Condensed';font-size:22px;font-weight:700;">{{ countedCashLabel }}</div>
+          </button>
+          <sc-if value="{{ shiftDiffVisible }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;justify-content:space-between;font-size:15px;padding:10px 0;"><span style="font-family:'Barlow Condensed';font-weight:600;">Farq</span><span style="font-family:'Barlow Condensed';font-weight:700;color:{{ shiftDiffColor }};">{{ shiftDiffLabel }}</span></div>
+          </sc-if>
+          <button onclick="{{ h.confirmShiftClose }}" disabled="{{ shiftCloseDisabled }}" style="width:100%;height:52px;background:#5980a6;border:1px solid #5980a6;color:#f2f2f3;font-family:'Barlow Condensed';font-size:16px;font-weight:600;cursor:pointer;opacity:{{ shiftCloseOpacity }};">Smenani yopish</button>
+        </div>
+      </div>
+
+      <sc-if value="{{ numPadOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;inset:0;background:rgba(29,31,32,0.4);display:flex;align-items:center;justify-content:center;">
+          <div style="background:#f2f2f3;border:1px solid rgba(29,31,32,0.2);padding:20px;display:flex;flex-direction:column;align-items:center;gap:14px;">
+            <div style="font-family:'Barlow Condensed';font-weight:600;font-size:15px;">{{ numPadTitle }}</div>
+            <div style="font-family:'Barlow Condensed';font-size:28px;font-weight:700;min-width:140px;text-align:center;">{{ numPadValueDisplay }}</div>
+            <div style="display:grid;grid-template-columns:repeat(3,58px);gap:8px;">
+              <sc-for list="{{ padKeys }}" as="k" hint-placeholder-count="12">
+                <button onclick="{{ k.onClick }}" style="height:50px;font-family:'Barlow Condensed';font-size:18px;font-weight:600;background:#e9e9ea;border:1px solid rgba(29,31,32,0.16);cursor:pointer;color:#1d1f20;">{{ k.label }}</button>
+              </sc-for>
+            </div>
+            <div style="display:flex;gap:10px;width:100%;">
+              <button onclick="{{ h.closeNumPad }}" style="flex:1;height:44px;background:transparent;border:1px solid rgba(29,31,32,0.25);cursor:pointer;font-family:'Barlow Condensed';font-size:14px;">Bekor qilish</button>
+              <button onclick="{{ h.confirmNumPad }}" style="flex:1;height:44px;background:#5980a6;color:#f2f2f3;border:1px solid #5980a6;cursor:pointer;font-family:'Barlow Condensed';font-size:14px;font-weight:600;">Tasdiqlash</button>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+    </sc-if>
+
+    <!-- ===== CREDIT CUSTOMERS ===== -->
+    <sc-if value="{{ isCreditCustomers }}" hint-placeholder-val="{{ false }}">
+      <div style="width:100%;height:100%;display:flex;flex-direction:column;">
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(29,31,32,0.16);background:#e9e9ea;flex:none;">
+          <button onclick="{{ h.backFromCreditCustomers }}" style="background:none;border:none;color:#416180;font-size:14px;cursor:pointer;">‹ Orqaga</button>
+          <div style="font-family:'Barlow Condensed';font-weight:600;font-size:15px;margin-left:6px;">Nasiya mijozlari</div>
+        </div>
+        <div style="flex:1;display:flex;overflow:hidden;">
+          <div style="width:340px;flex:none;border-right:1px solid rgba(29,31,32,0.16);display:flex;flex-direction:column;">
+            <input type="text" placeholder="Mijozni qidirish..." value="{{ ccSearch }}" oninput="{{ h.onCcSearch }}" style="height:44px;margin:12px;padding:0 12px;font-size:14px;background:#e9e9ea;border:1px solid rgba(29,31,32,0.16);color:#1d1f20;" />
+            <div style="flex:1;overflow:auto;padding:0 12px 12px;display:flex;flex-direction:column;gap:6px;">
+              <sc-for list="{{ ccList }}" as="cu" hint-placeholder-count="3">
+                <button onclick="{{ cu.onClick }}" style="display:flex;justify-content:space-between;padding:12px 14px;background:{{ cu.bg }};border:1px solid {{ cu.border }};cursor:pointer;font-family:Barlow;text-align:left;color:#1d1f20;">
+                  <span>{{ cu.name }}</span><span style="font-family:'Barlow Condensed';font-weight:600;color:#a23b2e;">{{ cu.debtLabel }}</span>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+          <div style="flex:1;padding:20px;overflow:auto;">
+            <sc-if value="{{ ccSelected }}" hint-placeholder-val="{{ false }}">
+              <div style="font-family:'Barlow Condensed';font-size:18px;font-weight:600;">{{ ccName }}</div>
+              <div style="font-size:13px;color:rgba(29,31,32,0.55);margin-bottom:16px;">{{ ccPhone }}</div>
+              <div style="display:flex;justify-content:space-between;align-items:baseline;padding:14px 0;border-top:1px solid rgba(29,31,32,0.16);border-bottom:1px solid rgba(29,31,32,0.16);margin-bottom:16px;">
+                <span style="font-family:'Barlow Condensed';font-size:15px;font-weight:600;">Joriy qarz</span>
+                <span style="font-family:'Barlow Condensed';font-size:24px;font-weight:700;color:#a23b2e;">{{ ccDebtLabel }}</span>
+              </div>
+              <button onclick="{{ h.openCcPayPad }}" style="width:100%;max-width:320px;height:50px;background:#5980a6;border:1px solid #5980a6;color:#f2f2f3;font-family:'Barlow Condensed';font-size:15px;font-weight:600;cursor:pointer;margin-bottom:20px;">To'lov qabul qilish</button>
+              <div style="font-family:'Barlow Condensed';font-weight:600;font-size:14px;margin-bottom:8px;">Qarz tarixi</div>
+              <sc-for list="{{ ccHistory }}" as="ch" hint-placeholder-count="3">
+                <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(29,31,32,0.08);font-size:13px;">
+                  <span>{{ ch.label }}</span><span style="font-weight:600;color:{{ ch.color }};">{{ ch.amountLabel }}</span>
+                </div>
+              </sc-for>
+            </sc-if>
+            <sc-if value="{{ ccNoneSelected }}" hint-placeholder-val="{{ true }}">
+              <div style="color:rgba(29,31,32,0.45);font-size:14px;">Mijozni tanlang</div>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+
+      <sc-if value="{{ numPadOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;inset:0;background:rgba(29,31,32,0.4);display:flex;align-items:center;justify-content:center;">
+          <div style="background:#f2f2f3;border:1px solid rgba(29,31,32,0.2);padding:20px;display:flex;flex-direction:column;align-items:center;gap:14px;">
+            <div style="font-family:'Barlow Condensed';font-weight:600;font-size:15px;">{{ numPadTitle }}</div>
+            <div style="font-family:'Barlow Condensed';font-size:28px;font-weight:700;min-width:140px;text-align:center;">{{ numPadValueDisplay }}</div>
+            <div style="display:grid;grid-template-columns:repeat(3,58px);gap:8px;">
+              <sc-for list="{{ padKeys }}" as="k" hint-placeholder-count="12">
+                <button onclick="{{ k.onClick }}" style="height:50px;font-family:'Barlow Condensed';font-size:18px;font-weight:600;background:#e9e9ea;border:1px solid rgba(29,31,32,0.16);cursor:pointer;color:#1d1f20;">{{ k.label }}</button>
+              </sc-for>
+            </div>
+            <div style="display:flex;gap:10px;width:100%;">
+              <button onclick="{{ h.closeNumPad }}" style="flex:1;height:44px;background:transparent;border:1px solid rgba(29,31,32,0.25);cursor:pointer;font-family:'Barlow Condensed';font-size:14px;">Bekor qilish</button>
+              <button onclick="{{ h.confirmNumPad }}" style="flex:1;height:44px;background:#5980a6;color:#f2f2f3;border:1px solid #5980a6;cursor:pointer;font-family:'Barlow Condensed';font-size:14px;font-weight:600;">Tasdiqlash</button>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+    </sc-if>
+
+    <sc-if value="{{ toastVisible }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;bottom:20px;left:50%;transform:translateX(-50%);background:#1d1f20;color:#f5f5f8;padding:10px 18px;font-size:13px;animation:toastIn 0.2s ease;">{{ toastText }}</div>
+    </sc-if>
+
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  cashiers = [{id:1,name:"Dilnoza Yusupova",pin:"1234"},{id:2,name:"Bahodir Karimov",pin:"5678"}];
+  categories = ["Bo'yoq","Sement va qurilish","Elektr tovarlari","Santexnika","Asboblar"];
+  products = [
+    {id:1,name:"Portlandcement M400 50kg",category:"Sement va qurilish",stock:340,units:[{label:"dona (qop)",factor:1,price:68000}]},
+    {id:2,name:"Gips shpaklovka 20kg",category:"Sement va qurilish",stock:12,units:[{label:"dona",factor:1,price:92000}]},
+    {id:3,name:"Emal bo'yoq Tex 3kg oq",category:"Bo'yoq",stock:54,units:[{label:"dona",factor:1,price:145000},{label:"karobka (6 dona)",factor:6,price:850000}]},
+    {id:4,name:"Emal bo'yoq Tex 3kg moviy",category:"Bo'yoq",stock:0,units:[{label:"dona",factor:1,price:145000}]},
+    {id:5,name:"Mix shpatlovka aralashmasi 25kg",category:"Sement va qurilish",stock:210,units:[{label:"dona",factor:1,price:78000}]},
+    {id:6,name:"Elektr kabel VVG 2x1.5",category:"Elektr tovarlari",stock:1500,units:[{label:"metr",factor:1,price:3200},{label:"pachka (100 metr)",factor:100,price:300000}]},
+    {id:7,name:"Rozetka ramkali oq",category:"Elektr tovarlari",stock:88,units:[{label:"dona",factor:1,price:18000},{label:"pachka (10 dona)",factor:10,price:165000}]},
+    {id:8,name:"Chala lampa LED 12W",category:"Elektr tovarlari",stock:5,units:[{label:"dona",factor:1,price:14000}]},
+    {id:9,name:"Santexnika truba PPR 20mm",category:"Santexnika",stock:320,units:[{label:"metr",factor:1,price:6500},{label:"pachka (50 metr)",factor:50,price:300000}]},
+    {id:10,name:"Kran-buksa sharoviy 1/2",category:"Santexnika",stock:60,units:[{label:"dona",factor:1,price:42000}]},
+    {id:11,name:"Bolg'a 500g",category:"Asboblar",stock:24,units:[{label:"dona",factor:1,price:38000}]},
+    {id:12,name:"Shpatel metall 100mm",category:"Asboblar",stock:40,units:[{label:"dona",factor:1,price:15000}]},
+    {id:13,name:"Qo'lqop ishchi (juft)",category:"Asboblar",stock:200,units:[{label:"dona",factor:1,price:8000},{label:"pachka (12 juft)",factor:12,price:84000}]},
+    {id:14,name:"Gvozd 100mm",category:"Sement va qurilish",stock:75,units:[{label:"kg",factor:1,price:16000}]}
+  ];
+  customers = [
+    {id:1,name:"Aziz Nazarov",phone:"+998 90 123 45 67",debt:245000},
+    {id:2,name:"Malika Tosheva",phone:"+998 93 555 12 34",debt:0},
+    {id:3,name:"Rustam Qodirov",phone:"+998 97 777 88 99",debt:1240000}
+  ];
+  seedSales = [
+    {code:"#4821",time:"14:32",method:"Naqd",cashier:"Dilnoza Yusupova",items:[{name:"Bolg'a 500g",qty:1,price:38000},{name:"Shpatel metall 100mm",qty:2,price:15000},{name:"Qo'lqop ishchi (juft)",qty:1,price:8000},{name:"Chala lampa LED 12W",qty:1,price:14000},{name:"Kran-buksa sharoviy 1/2",qty:1,price:23000}]},
+    {code:"#4820",time:"14:10",method:"Karta + Naqd",cashier:"Dilnoza Yusupova",items:[{name:"Portlandcement M400 50kg",qty:5,price:68000},{name:"Mix shpatlovka aralashmasi 25kg",qty:1,price:78000},{name:"Gvozd 100mm",qty:2,price:16000}]},
+    {code:"#4819",time:"13:47",method:"Click",cashier:"Bahodir Karimov",items:[{name:"Elektr kabel VVG 2x1.5",qty:20,price:3200},{name:"Rozetka ramkali oq",qty:2,price:18000}]},
+    {code:"#4818",time:"13:20",method:"Nasiya",cashier:"Dilnoza Yusupova",items:[{name:"Santexnika truba PPR 20mm",qty:50,price:6500},{name:"Kran-buksa sharoviy 1/2",qty:5,price:42000}]},
+    {code:"#4817",time:"12:58",method:"Naqd",cashier:"Bahodir Karimov",items:[{name:"Emal bo'yoq Tex 3kg oq",qty:1,price:145000},{name:"Qo'lqop ishchi (juft)",qty:2,price:8000}]}
+  ];
+
+  state = {
+    screen:"login", pendingCashierId:null, cashierId:null, pin:"", pinError:false,
+    shiftOpen:false, openingCash:"",
+    isPortrait:false, offline:false, pendingOffline:0, keyboardOpen:false,
+    searchQuery:"", selectedCategory:null,
+    cart:[], stockNotice:null,
+    activeInput:"loginPin",
+    numPadMode:null, numPadValue:"", numPadCartId:null,
+    unitPickerProduct:null,
+    pinModalOpen:false, pinModalAction:null, pinModalPayload:null, pinModalValue:"", pinModalError:false,
+    overallDiscount:0,
+    tenderCash:0, tenderCard:0, tenderClick:0, isCredit:false, creditCustomerId:null, creditSearch:"",
+    saleComplete:null, saleCounter:4822, sessionCashIn:0,
+    todaySales:[], salesListState:"ok", expandedSaleCode:null,
+    drawerOpen:false, toast:null,
+    returnSearch:"", returnSaleCode:null, returnQtys:{},
+    cmType:"out", cmAmount:0, cmReason:"", cmHistory:[],
+    countedCash:"",
+    ccSearch:"", ccSelectedId:null, customersState:null
+  };
+
+  componentDidMount(){ this.setState({todaySales:this.seedSales, customersState:this.customers.map(c=>({...c}))}); }
+
+  goReturns(){ this.setState({screen:"returns",drawerOpen:false,returnSaleCode:null,returnQtys:{},returnSearch:""}); }
+  backFromReturns(){ this.setState({screen:"sale"}); }
+  clearReturnSale(){ this.setState({returnSaleCode:null,returnQtys:{}}); }
+  onReturnSearch(e){ this.setState({returnSearch:e.target.value}); }
+  selectReturnSale(code){
+    const sale=this.state.todaySales.find(s=>s.code===code);
+    const qtys={}; if(sale) sale.items.forEach((it,i)=>qtys[i]=0);
+    this.setState({returnSaleCode:code,returnQtys:qtys});
+  }
+  changeReturnQty(i,delta,max){
+    const q={...this.state.returnQtys};
+    q[i]=Math.max(0,Math.min(max,(q[i]||0)+delta));
+    this.setState({returnQtys:q});
+  }
+  confirmReturn(){ this.openPinModal("confirmReturn",{}); }
+
+  goCashMovement(){ this.setState({screen:"cashMovement",drawerOpen:false,cmAmount:0,cmReason:""}); }
+  backFromCashMovement(){ this.setState({screen:"sale"}); }
+  setCmOut(){ this.setState({cmType:"out"}); }
+  setCmIn(){ this.setState({cmType:"in"}); }
+  onCmReason(e){ this.setState({cmReason:e.target.value}); }
+  openCmAmountPad(){ this.openNumPad("cmAmount",{}); }
+  confirmCashMovement(){ if(!this.state.cmAmount) return; this.openPinModal("confirmCashMovement",{}); }
+
+  goShiftClose(){ this.setState({screen:"shiftClose",drawerOpen:false,countedCash:""}); }
+  backFromShiftClose(){ this.setState({screen:"sale"}); }
+  openCountedCashPad(){ this.openNumPad("countedCash",{}); }
+  expectedCash(){
+    const s=this.state;
+    const outs=s.cmHistory.filter(h=>h.type==="out").reduce((sum,h)=>sum+h.amount,0);
+    const ins=s.cmHistory.filter(h=>h.type==="in").reduce((sum,h)=>sum+h.amount,0);
+    return parseFloat(s.openingCash||"0")+s.sessionCashIn-outs+ins;
+  }
+  confirmShiftClose(){
+    this.setState({shiftOpen:false,screen:"login",openingCash:"",sessionCashIn:0,cmHistory:[],pendingCashierId:null,cashierId:null,pin:"",activeInput:"loginPin"});
+    this.showToast("Smena yopildi");
+  }
+
+  goCreditCustomers(){ this.setState({screen:"creditCustomers",drawerOpen:false,ccSelectedId:null,ccSearch:""}); }
+  backFromCreditCustomers(){ this.setState({screen:"sale"}); }
+  onCcSearch(e){ this.setState({ccSearch:e.target.value}); }
+  selectCc(id){ this.setState({ccSelectedId:id}); }
+  openCcPayPad(){ this.openNumPad("ccPay",{}); }
+
+  formatSom(n){ return Math.round(n).toLocaleString("fr-FR").replace(/,/g," ") + " so'm"; }
+  clamp(n,a,b){ return Math.max(a,Math.min(b,n)); }
+  cashierById(id){ return this.cashiers.find(c=>c.id===id); }
+  uid(){ return Math.random().toString(36).slice(2); }
+
+  showToast(msg){ this.setState({toast:msg}); setTimeout(()=>this.setState({toast:null}),2500); }
+
+  selectCashierTile(id){ this.setState({pendingCashierId:id,pin:"",pinError:false,activeInput:"loginPin"}); }
+  backToCashierGrid(){ this.setState({pendingCashierId:null,pin:""}); }
+
+  pressDigit(d){
+    const s=this.state;
+    if(s.activeInput==="loginPin"){
+      if(s.pin.length>=4) return;
+      const pin=s.pin+d;
+      this.setState({pin});
+      if(pin.length===4){
+        const c=this.cashierById(s.pendingCashierId);
+        setTimeout(()=>{
+          if(c && c.pin===pin){
+            this.setState({cashierId:c.id, pendingCashierId:null, pin:"", screen: this.state.shiftOpen ? "sale":"shiftOpen", activeInput: this.state.shiftOpen?"none":"openingCashPad"});
+          } else {
+            this.setState({pinError:true});
+            setTimeout(()=>this.setState({pin:"",pinError:false}),450);
+          }
+        },80);
+      }
+      return;
+    }
+    if(s.activeInput==="pinModal"){
+      if(s.pinModalValue.length>=4) return;
+      const v=s.pinModalValue+d;
+      this.setState({pinModalValue:v});
+      if(v.length===4){
+        const c=this.cashierById(s.cashierId);
+        setTimeout(()=>{
+          if(c && c.pin===v){ this.dispatchPinAction(); }
+          else { this.setState({pinModalError:true}); setTimeout(()=>this.setState({pinModalValue:"",pinModalError:false}),450); }
+        },80);
+      }
+      return;
+    }
+    if(s.activeInput==="openingCashPad"){
+      if(s.openingCash.length>=9) return;
+      this.setState({openingCash:s.openingCash+d});
+      return;
+    }
+    if(s.activeInput==="numPad"){
+      if(s.numPadValue.length>=9) return;
+      this.setState({numPadValue:s.numPadValue+d});
+    }
+  }
+  pressDot(){
+    const s=this.state;
+    if(s.activeInput==="numPad" && s.numPadMode==="qty" && !s.numPadValue.includes(".")) this.setState({numPadValue:s.numPadValue+"."});
+  }
+  pressBack(){
+    const s=this.state;
+    if(s.activeInput==="loginPin") this.setState({pin:s.pin.slice(0,-1)});
+    else if(s.activeInput==="pinModal") this.setState({pinModalValue:s.pinModalValue.slice(0,-1)});
+    else if(s.activeInput==="openingCashPad") this.setState({openingCash:s.openingCash.slice(0,-1)});
+    else if(s.activeInput==="numPad") this.setState({numPadValue:s.numPadValue.slice(0,-1)});
+  }
+  pressClear(){
+    const s=this.state;
+    if(s.activeInput==="loginPin") this.setState({pin:""});
+    else if(s.activeInput==="pinModal") this.setState({pinModalValue:""});
+    else if(s.activeInput==="openingCashPad") this.setState({openingCash:""});
+    else if(s.activeInput==="numPad") this.setState({numPadValue:""});
+  }
+
+  startShift(){
+    if(!this.state.openingCash) return;
+    this.setState({shiftOpen:true,screen:"sale",activeInput:"none"});
+  }
+
+  openDrawer(){ this.setState({drawerOpen:true}); }
+  closeDrawer(){ this.setState({drawerOpen:false}); }
+  goSalesToday(){ this.setState({screen:"salesToday",drawerOpen:false}); }
+  backFromSalesToday(){ this.setState({screen: this.state.saleComplete? "sale":"sale", expandedSaleCode:null}); }
+  cycleSalesListState(){
+    const order=["ok","loading","empty","error"];
+    const i=order.indexOf(this.state.salesListState);
+    this.setState({salesListState: order[(i+1)%order.length]});
+  }
+
+  togglePortrait(){ this.setState({isPortrait:!this.state.isPortrait}); }
+  toggleOffline(){ this.setState({offline:!this.state.offline}); }
+  simulateWake(){ this.showToast("Savat saqlangan — tiklandi"); }
+  dismissStockNotice(){ this.setState({stockNotice:null}); }
+  onSearchFocus(){ this.setState({keyboardOpen:true}); }
+  onSearchBlur(){ this.setState({keyboardOpen:false}); }
+  onSearch(e){ this.setState({searchQuery:e.target.value}); }
+  setCategory(cat){ this.setState({selectedCategory:cat}); }
+
+  openUnitPicker(product){ this.setState({unitPickerProduct:product}); }
+  closeUnitPicker(){ this.setState({unitPickerProduct:null}); }
+  stopClick(e){ e.stopPropagation(); }
+
+  addToCart(product,unit){
+    const cart=[...this.state.cart];
+    const idx=cart.findIndex(r=>r.productId===product.id && r.unitLabel===unit.label);
+    if(idx>=0){ cart[idx]={...cart[idx],qty:cart[idx].qty+1}; }
+    else { cart.push({cartId:this.uid(),productId:product.id,name:product.name,unitLabel:unit.label,price:unit.price,qty:1,discountPct:0}); }
+    const patch={cart,unitPickerProduct:null};
+    if(product.stock===0) patch.stockNotice=product.name;
+    this.setState(patch);
+  }
+  onProductTap(product){
+    if(product.units.length>1) this.openUnitPicker(product);
+    else this.addToCart(product,product.units[0]);
+  }
+
+  changeQty(cartId,delta){
+    const cart=this.state.cart.map(r=>r.cartId===cartId? {...r,qty:Math.max(1,r.qty+delta)}:r);
+    this.setState({cart});
+  }
+  clearCart(){ this.setState({cart:[],overallDiscount:0}); }
+
+  openNumPad(mode,opts){ opts=opts||{}; this.setState({numPadMode:mode,numPadValue:"",numPadCartId:opts.cartId||null,activeInput:"numPad"}); }
+  closeNumPad(){ this.setState({numPadMode:null,activeInput:"none"}); }
+  confirmNumPad(){
+    const s=this.state; const v=parseFloat(s.numPadValue||"0");
+    if(s.numPadMode==="qty"){
+      const cart=s.cart.map(r=>r.cartId===s.numPadCartId? {...r,qty:Math.max(0.001,v||1)}:r);
+      this.setState({cart});
+    } else if(s.numPadMode==="rowDiscount"){
+      const cart=s.cart.map(r=>r.cartId===s.numPadCartId? {...r,discountPct:this.clamp(v,0,100)}:r);
+      this.setState({cart});
+    } else if(s.numPadMode==="overallDiscount"){
+      this.setState({overallDiscount:this.clamp(v,0,100)});
+    } else if(s.numPadMode==="tenderCash"){ this.setState({tenderCash:v}); }
+    else if(s.numPadMode==="tenderCard"){ this.setState({tenderCard:v}); }
+    else if(s.numPadMode==="tenderClick"){ this.setState({tenderClick:v}); }
+    else if(s.numPadMode==="cmAmount"){ this.setState({cmAmount:v}); }
+    else if(s.numPadMode==="countedCash"){ this.setState({countedCash:s.numPadValue}); }
+    else if(s.numPadMode==="ccPay"){
+      const cust=(s.customersState||[]).find(c=>c.id===s.ccSelectedId);
+      if(cust){
+        const customersState=s.customersState.map(c=>c.id===cust.id? {...c,debt:Math.max(0,c.debt-v)}:c);
+        this.setState({customersState});
+        this.showToast("To'lov qabul qilindi: "+this.formatSom(v));
+      }
+    }
+    this.closeNumPad();
+  }
+
+  openPinModal(action,payload){ this.setState({pinModalOpen:true,pinModalAction:action,pinModalPayload:payload||null,pinModalValue:"",pinModalError:false,activeInput:"pinModal"}); }
+  closePinModal(){ this.setState({pinModalOpen:false,activeInput:"none"}); }
+  dispatchPinAction(){
+    const {pinModalAction:a,pinModalPayload:p}=this.state;
+    this.setState({pinModalOpen:false,pinModalValue:""});
+    if(a==="deleteRow"){ this.setState({cart:this.state.cart.filter(r=>r.cartId!==p.cartId),activeInput:"none"}); }
+    else if(a==="rowDiscount"){ this.openNumPad("rowDiscount",{cartId:p.cartId}); }
+    else if(a==="overallDiscount"){ this.openNumPad("overallDiscount",{}); }
+    else if(a==="confirmReturn"){
+      const {total}=this.returnMath();
+      this.setState({returnSaleCode:null,returnQtys:{},activeInput:"none"});
+      this.showToast("Qaytarildi: -"+this.formatSom(total));
+    }
+    else if(a==="confirmCashMovement"){
+      const st=this.state;
+      const entry={reason:st.cmReason||(st.cmType==="out"?"Naqd olib chiqish":"Naqd kiritish"),amount:st.cmAmount,type:st.cmType,color: st.cmType==="out"?"#a23b2e":"#2c6b3f"};
+      this.setState({cmHistory:[entry,...st.cmHistory],cmAmount:0,cmReason:"",activeInput:"none"});
+      this.showToast("Kassa harakati saqlandi");
+    }
+  }
+  returnMath(){
+    const s=this.state; const sale=s.todaySales.find(sl=>sl.code===s.returnSaleCode);
+    if(!sale) return {total:0};
+    let total=0;
+    sale.items.forEach((it,i)=>{ total += (s.returnQtys[i]||0)*it.price; });
+    return {total};
+  }
+
+  cartMath(){
+    const cart=this.state.cart;
+    const rows=cart.map(r=>({...r,rowTotal:r.qty*r.price*(1-r.discountPct/100)}));
+    const subtotal=rows.reduce((s,r)=>s+r.rowTotal,0);
+    const overallAmt=subtotal*this.state.overallDiscount/100;
+    const total=subtotal-overallAmt;
+    return {rows,subtotal,overallAmt,total};
+  }
+
+  onPayClick(){
+    if(this.state.cart.length===0) return;
+    this.setState({screen:"payment",activeInput:"none"});
+  }
+  backFromPayment(){ this.setState({screen:"sale"}); }
+  setModeMixed(){ this.setState({isCredit:false}); }
+  setModeCredit(){ this.setState({isCredit:true}); }
+  onCreditSearch(e){ this.setState({creditSearch:e.target.value}); }
+  selectCreditCustomer(id){ this.setState({creditCustomerId:id}); }
+
+  confirmPay(){
+    const {total}=this.cartMath();
+    const s=this.state;
+    let methodLabel="";
+    if(s.isCredit){
+      const cust=this.customers.find(c=>c.id===s.creditCustomerId);
+      if(!cust) return;
+      methodLabel="Nasiya · "+cust.name;
+    } else {
+      const paid=s.tenderCash+s.tenderCard+s.tenderClick;
+      if(paid<total) return;
+      const parts=[];
+      if(s.tenderCash>0) parts.push("Naqd");
+      if(s.tenderCard>0) parts.push("Karta");
+      if(s.tenderClick>0) parts.push("Click");
+      methodLabel=parts.join(" + ")||"Naqd";
+    }
+    const code="#"+s.saleCounter;
+    const record={code,time:"hozir",method:methodLabel,cashier:(this.cashierById(s.cashierId)||{}).name,items:this.cartMath().rows.map(r=>({name:r.name,qty:r.qty,price:r.price}))};
+    this.setState({
+      todaySales:[record,...s.todaySales],
+      saleCounter:s.saleCounter+1,
+      pendingOffline: s.offline? s.pendingOffline+1 : s.pendingOffline,
+      sessionCashIn: s.sessionCashIn + (s.isCredit?0:s.tenderCash),
+      cart:[], overallDiscount:0, tenderCash:0, tenderCard:0, tenderClick:0, isCredit:false, creditCustomerId:null, creditSearch:"",
+      screen:"saleComplete",
+      saleComplete:{code,total,methodLabel}
+    });
+  }
+  newSale(){ this.setState({screen:"sale",saleComplete:null}); }
+  resetAll(){
+    this.setState({screen:"login",pendingCashierId:null,cashierId:null,pin:"",shiftOpen:false,openingCash:"",cart:[],overallDiscount:0,tenderCash:0,tenderCard:0,tenderClick:0,isCredit:false,creditCustomerId:null,drawerOpen:false,saleComplete:null,activeInput:"loginPin",offline:false,pendingOffline:0});
+  }
+
+  renderVals(){
+    const s=this.state;
+    const padKeys=[1,2,3,4,5,6,7,8,9].map(n=>({label:String(n),onClick:()=>this.pressDigit(String(n))}));
+    padKeys.push({label:".",onClick:()=>this.pressDot()});
+    padKeys.push({label:"0",onClick:()=>this.pressDigit("0")});
+    padKeys.push({label:"⌫",onClick:()=>this.pressBack()});
+
+    const cashierTiles=this.cashiers.map(c=>({id:c.id,name:c.name,initial:c.name[0],onClick:()=>this.selectCashierTile(c.id)}));
+    const pendingCashier=this.cashierById(s.pendingCashierId);
+    const pinDots=[0,1,2,3].map(i=>({bg: i<s.pin.length? "#416180":"transparent"}));
+    const pinModalDots=[0,1,2,3].map(i=>({bg: i<s.pinModalValue.length? "#416180":"transparent"}));
+
+    const {rows:cartRowsRaw,subtotal,overallAmt,total}=this.cartMath();
+    const cartItems=cartRowsRaw.map(r=>({
+      cartId:r.cartId,name:r.name,unitLabel:r.unitLabel,
+      qtyLabel: Number.isInteger(r.qty)? String(r.qty) : String(r.qty),
+      lineTotalLabel:this.formatSom(r.rowTotal),
+      discountTagVisible:r.discountPct>0, discountTagLabel:String(r.discountPct),
+      onMinus:()=>this.changeQty(r.cartId,-1), onPlus:()=>this.changeQty(r.cartId,1),
+      onQtyTap:()=>this.openNumPad("qty",{cartId:r.cartId}),
+      onDiscountTap:()=>this.openPinModal("rowDiscount",{cartId:r.cartId}),
+      onDeleteTap:()=>this.openPinModal("deleteRow",{cartId:r.cartId})
+    }));
+
+    const filteredProducts=this.products.filter(p=>{
+      if(s.selectedCategory && p.category!==s.selectedCategory) return false;
+      if(s.searchQuery && !p.name.toLowerCase().includes(s.searchQuery.toLowerCase())) return false;
+      return true;
+    });
+    const displayProducts=filteredProducts.map(p=>{
+      let tag=null,border="",color="";
+      if(p.stock===0){ tag="Tugagan · sotiladi"; border="#c98f80"; color="#a23b2e"; }
+      else if(p.stock<15){ tag="Kam qoldi"; border="#d1a94a"; color="#7a5a12"; }
+      return {
+        id:p.id,name:p.name,priceLabel:this.formatSom(p.units[0].price)+(p.units.length>1?" +":""),
+        stockTagVisible:!!tag, stockTagLabel:tag, stockTagBorder:border, stockTagColor:color,
+        onClick:()=>this.onProductTap(p)
+      };
+    });
+    const categoryChips=[{name:null,label:"Hammasi"}].concat(this.categories.map(c=>({name:c,label:c}))).map(c=>{
+      const sel = s.selectedCategory===c.name;
+      return {label:c.label, onClick:()=>this.setCategory(c.name), bg: sel?"#5980a6":"#e9e9ea", color: sel?"#f2f2f3":"#1d1f20", border: sel?"#5980a6":"rgba(29,31,32,0.16)"};
+    });
+
+    const up=s.unitPickerProduct;
+    const unitPickerUnits = up? up.units.map(u=>({label:u.label,priceLabel:this.formatSom(u.price),onClick:()=>this.addToCart(up,u)})) : [];
+
+    const numPadTitleMap={qty:"Miqdorni kiriting",rowDiscount:"Qatorga chegirma, %",overallDiscount:"Umumiy chegirma, %",tenderCash:"Naqd summasi",tenderCard:"Karta summasi",tenderClick:"Click summasi",cmAmount:"Summani kiriting",countedCash:"Sanalgan naqd",ccPay:"To'lov summasi"};
+    const numPadTitle=numPadTitleMap[s.numPadMode]||"";
+    const numPadValueDisplay = s.numPadMode==="rowDiscount"||s.numPadMode==="overallDiscount" ? (s.numPadValue||"0")+"%" : this.formatSom(parseFloat(s.numPadValue||"0"));
+
+    const pinTitleMap={deleteRow:"Qatorni o'chirish uchun PIN",rowDiscount:"Chegirma uchun PIN",overallDiscount:"Chegirma uchun PIN",confirmReturn:"Qaytarish uchun PIN",confirmCashMovement:"Kassa harakati uchun PIN"};
+
+    const customersState = s.customersState || this.customers;
+    const returnSaleOptions = s.todaySales.filter(sale=> !s.returnSearch || sale.code.toLowerCase().includes(s.returnSearch.toLowerCase())).map(sale=>{
+      const t=sale.items.reduce((sum,it)=>sum+it.qty*it.price,0);
+      return {code:sale.code,timeLabel:sale.time,totalLabel:this.formatSom(t),onClick:()=>this.selectReturnSale(sale.code)};
+    });
+    const returnSaleObj = s.todaySales.find(sale=>sale.code===s.returnSaleCode);
+    const returnItems = returnSaleObj? returnSaleObj.items.map((it,i)=>({
+      name:it.name, originalQtyLabel:String(it.qty)+" dona", priceLabel:this.formatSom(it.price),
+      returnQtyLabel:String(s.returnQtys[i]||0),
+      onMinus:()=>this.changeReturnQty(i,-1,it.qty), onPlus:()=>this.changeReturnQty(i,1,it.qty)
+    })) : [];
+    const returnTotal = this.returnMath().total;
+
+    const ccList = customersState.filter(c=>!s.ccSearch||c.name.toLowerCase().includes(s.ccSearch.toLowerCase())).map(c=>({
+      id:c.id,name:c.name,debtLabel:this.formatSom(c.debt),
+      bg: c.id===s.ccSelectedId?"#eef6ff":"#fff", border: c.id===s.ccSelectedId?"#5980a6":"rgba(29,31,32,0.16)",
+      onClick:()=>this.selectCc(c.id)
+    }));
+    const ccCust = customersState.find(c=>c.id===s.ccSelectedId);
+
+    const paid=s.tenderCash+s.tenderCard+s.tenderClick;
+    const remaining=Math.max(0,total-paid);
+    const change=Math.max(0, paid-total);
+    const cust=this.customers.find(c=>c.id===s.creditCustomerId);
+    const creditCustomersFiltered=this.customers.filter(c=>!s.creditSearch||c.name.toLowerCase().includes(s.creditSearch.toLowerCase())).map(c=>({
+      id:c.id,name:c.name,phone:c.phone,debtLabel:this.formatSom(c.debt)+" qarz",
+      bg: c.id===s.creditCustomerId?"#eef6ff":"#fff", border: c.id===s.creditCustomerId?"#5980a6":"rgba(29,31,32,0.16)",
+      onClick:()=>this.selectCreditCustomer(c.id)
+    }));
+
+    const salesDisplay=s.todaySales.map(sale=>{
+      const t=sale.items.reduce((sum,it)=>sum+it.qty*it.price,0);
+      return {
+        code:sale.code, timeLabel:sale.time, methodLabel:sale.method, totalLabel:this.formatSom(t),
+        expanded: s.expandedSaleCode===sale.code,
+        onToggle:()=>this.setState({expandedSaleCode: s.expandedSaleCode===sale.code? null: sale.code}),
+        itemsDisplay: sale.items.map(it=>({name:it.name,qtyLabel:String(it.qty),sumLabel:this.formatSom(it.qty*it.price)})),
+        onReturn:()=>{ this.setState({screen:"returns",returnSaleCode:sale.code,returnQtys:sale.items.reduce((o,_,i)=>{o[i]=0;return o;},{})}); }
+      };
+    });
+
+    return {
+      frameW: s.isPortrait? 800:1280, frameH: s.isPortrait? 1280:800,
+      mainDir: s.isPortrait? "column":"row",
+      portraitLabel: s.isPortrait? "Portret ✓":"Landshaft ✓",
+      offlineLabel: s.offline? "Offline: ON":"Offline: OFF",
+      offlineBtnBg: s.offline? "#f3e3c4":"transparent",
+      salesListStateLabel: {ok:"OK",loading:"Yuklanmoqda",empty:"Bo'sh",error:"Xato"}[s.salesListState],
+
+      isLogin: s.screen==="login", isShiftOpen: s.screen==="shiftOpen", isSale: s.screen==="sale",
+      isPayment: s.screen==="payment", isSaleComplete: s.screen==="saleComplete", isSalesToday: s.screen==="salesToday",
+      isReturns: s.screen==="returns", isCashMovement: s.screen==="cashMovement", isShiftClose: s.screen==="shiftClose", isCreditCustomers: s.screen==="creditCustomers",
+
+      cashierTiles, noPendingCashier: !s.pendingCashierId, hasPendingCashier: !!s.pendingCashierId,
+      pendingCashierName: pendingCashier? pendingCashier.name:"", pinDots, pinErrorShown: s.pinError,
+      padKeys,
+
+      openingCashDisplay: s.openingCash? this.formatSom(parseFloat(s.openingCash)) : "0 so'm",
+      startShiftDisabled: !s.openingCash, startShiftOpacity: s.openingCash? 1:0.45,
+
+      offline: s.offline, pendingOffline: s.pendingOffline,
+      cashierNameDisplay: (this.cashierById(s.cashierId)||{}).name || "",
+      stockNoticeVisible: !!s.stockNotice, stockNoticeText: s.stockNotice,
+      mainDir2: s.isPortrait?"column":"row",
+      gridBottomPad: s.keyboardOpen? 260:8,
+      keyboardOpen: s.keyboardOpen,
+      categoryChips, displayProducts, searchQuery:s.searchQuery,
+      cartWidth: s.isPortrait? 1280 : 380,
+      cartCount: cartItems.length, cartCount0: cartItems.length>0, cartEmpty: cartItems.length===0, cartItems,
+      subtotalLabel:this.formatSom(subtotal),
+      overallDiscountVisible: s.overallDiscount>0, overallDiscountLabel: this.formatSom(overallAmt),
+      totalLabel: this.formatSom(total),
+      payDisabled: cartItems.length===0, payOpacity: cartItems.length===0? 0.45:1,
+
+      unitPickerOpen: !!up, unitPickerProductName: up? up.name:"", unitPickerUnits,
+
+      numPadOpen: !!s.numPadMode, numPadTitle, numPadValueDisplay,
+
+      pinModalOpen: s.pinModalOpen, pinModalTitle: pinTitleMap[s.pinModalAction]||"Tasdiqlash", pinModalDots, pinModalErrorShown: s.pinModalError,
+
+      drawerOpen: s.drawerOpen,
+
+      mixedBg: !s.isCredit? "#5980a6":"transparent", mixedColor: !s.isCredit? "#f2f2f3":"#1d1f20",
+      creditBg: s.isCredit? "#5980a6":"transparent", creditColor: s.isCredit? "#f2f2f3":"#1d1f20",
+      isMixedMode: !s.isCredit, isCredit: s.isCredit,
+      tenderRows: [
+        {label:"Naqd", valueLabel:this.formatSom(s.tenderCash), onTap:()=>this.openNumPad("tenderCash",{})},
+        {label:"Karta", valueLabel:this.formatSom(s.tenderCard), onTap:()=>this.openNumPad("tenderCard",{})},
+        {label:"Click", valueLabel:this.formatSom(s.tenderClick), onTap:()=>this.openNumPad("tenderClick",{})}
+      ],
+      paidLabel: this.formatSom(paid), remainingVisible: remaining>0, remainingLabel: this.formatSom(remaining),
+      changeVisible: change>0, changeLabel: this.formatSom(change),
+      creditSearch: s.creditSearch, creditCustomersFiltered,
+      creditCustomerSelected: !!cust, newDebtLabel: cust? this.formatSom(cust.debt+total):"",
+      confirmPayDisabled: s.isCredit? !cust : paid<total,
+      confirmPayOpacity: (s.isCredit? !cust : paid<total)? 0.45:1,
+
+      saleCode: s.saleComplete? s.saleComplete.code:"", saleTotalLabel: s.saleComplete? this.formatSom(s.saleComplete.total):"", saleMethodLabel: s.saleComplete? s.saleComplete.methodLabel:"",
+
+      salesLoading: s.salesListState==="loading", salesEmpty: s.salesListState==="empty", salesErrorState: s.salesListState==="error", salesOk: s.salesListState==="ok",
+      salesDisplay,
+
+      toastVisible: !!s.toast, toastText: s.toast||"",
+
+      returnSearch: s.returnSearch, returnSaleNotSelected: !s.returnSaleCode, returnSaleSelected: !!s.returnSaleCode,
+      returnSaleOptions, returnSaleCode: s.returnSaleCode||"", returnSaleTime: returnSaleObj? returnSaleObj.time:"",
+      returnItems, returnTotalLabel: this.formatSom(returnTotal), returnConfirmDisabled: returnTotal<=0, returnConfirmOpacity: returnTotal<=0?0.45:1,
+
+      cmOutBg: s.cmType==="out"?"#5980a6":"transparent", cmOutColor: s.cmType==="out"?"#f2f2f3":"#1d1f20",
+      cmInBg: s.cmType==="in"?"#5980a6":"transparent", cmInColor: s.cmType==="in"?"#f2f2f3":"#1d1f20",
+      cmAmountLabel: this.formatSom(s.cmAmount), cmReason: s.cmReason,
+      cmConfirmDisabled: !s.cmAmount, cmConfirmOpacity: !s.cmAmount?0.45:1,
+      cmHistoryEmpty: s.cmHistory.length===0,
+      cmHistory: s.cmHistory.map(h=>({reason:h.reason,amountLabel:(h.type==="out"?"-":"+")+this.formatSom(h.amount),color:h.color})),
+
+      expectedCashLabel: this.formatSom(this.expectedCash()),
+      countedCashLabel: s.countedCash? this.formatSom(parseFloat(s.countedCash)) : "0 so'm",
+      shiftDiffVisible: s.countedCash!=="",
+      shiftDiffLabel: (()=>{ const d=(parseFloat(s.countedCash||"0"))-this.expectedCash(); return (d>0?"+":"")+this.formatSom(d); })(),
+      shiftDiffColor: (()=>{ const d=(parseFloat(s.countedCash||"0"))-this.expectedCash(); return d<0?"#a23b2e":d>0?"#7a5a12":"#2c6b3f"; })(),
+      shiftCloseDisabled: s.countedCash==="", shiftCloseOpacity: s.countedCash===""?0.45:1,
+
+      ccSearch: s.ccSearch, ccList,
+      ccSelected: !!ccCust, ccNoneSelected: !ccCust,
+      ccName: ccCust? ccCust.name:"", ccPhone: ccCust? ccCust.phone:"", ccDebtLabel: ccCust? this.formatSom(ccCust.debt):"",
+      ccHistory: ccCust? [
+        {label:"Nasiya berildi · 13.09",amountLabel:"+"+this.formatSom(Math.round(ccCust.debt*0.6)),color:"#a23b2e"},
+        {label:"To'lov qabul qilindi · 05.09",amountLabel:"-"+this.formatSom(Math.round(ccCust.debt*0.3)),color:"#2c6b3f"},
+        {label:"Nasiya berildi · 28.08",amountLabel:"+"+this.formatSom(Math.round(ccCust.debt*0.7)),color:"#a23b2e"}
+      ] : [],
+
+      h: {
+        resetAll:()=>this.resetAll(), togglePortrait:()=>this.togglePortrait(), toggleOffline:()=>this.toggleOffline(),
+        simulateWake:()=>this.simulateWake(), cycleSalesListState:()=>this.cycleSalesListState(),
+        backToCashierGrid:()=>this.backToCashierGrid(), startShift:()=>this.startShift(),
+        openDrawer:()=>this.openDrawer(), closeDrawer:()=>this.closeDrawer(), goSalesToday:()=>this.goSalesToday(),
+        backFromSalesToday:()=>this.backFromSalesToday(),
+        onSearch:(e)=>this.onSearch(e), onSearchFocus:()=>this.onSearchFocus(), onSearchBlur:()=>this.onSearchBlur(),
+        dismissStockNotice:()=>this.dismissStockNotice(),
+        clearCart:()=>this.clearCart(), onOverallDiscountClick:()=>this.openPinModal("overallDiscount",{}),
+        onPayClick:()=>this.onPayClick(), closeUnitPicker:()=>this.closeUnitPicker(), stopClick:(e)=>this.stopClick(e),
+        closeNumPad:()=>this.closeNumPad(), confirmNumPad:()=>this.confirmNumPad(), closePinModal:()=>this.closePinModal(),
+        backFromPayment:()=>this.backFromPayment(), setModeMixed:()=>this.setModeMixed(), setModeCredit:()=>this.setModeCredit(),
+        onCreditSearch:(e)=>this.onCreditSearch(e), confirmPay:()=>this.confirmPay(), newSale:()=>this.newSale(),
+        goReturns:()=>this.goReturns(), backFromReturns:()=>this.backFromReturns(), onReturnSearch:(e)=>this.onReturnSearch(e),
+        clearReturnSale:()=>this.clearReturnSale(), confirmReturn:()=>this.confirmReturn(),
+        goCashMovement:()=>this.goCashMovement(), backFromCashMovement:()=>this.backFromCashMovement(),
+        setCmOut:()=>this.setCmOut(), setCmIn:()=>this.setCmIn(), onCmReason:(e)=>this.onCmReason(e),
+        openCmAmountPad:()=>this.openCmAmountPad(), confirmCashMovement:()=>this.confirmCashMovement(),
+        goShiftClose:()=>this.goShiftClose(), backFromShiftClose:()=>this.backFromShiftClose(),
+        openCountedCashPad:()=>this.openCountedCashPad(), confirmShiftClose:()=>this.confirmShiftClose(),
+        goCreditCustomers:()=>this.goCreditCustomers(), backFromCreditCustomers:()=>this.backFromCreditCustomers(),
+        onCcSearch:(e)=>this.onCcSearch(e), openCcPayPad:()=>this.openCcPayPad()
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

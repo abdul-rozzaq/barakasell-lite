@@ -1,0 +1,465 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ADMIN
+  CASHIER
+}
+
+enum UserStatus {
+  ACTIVE
+  BLOCKED
+}
+
+enum LedgerType {
+  RECEIPT
+  SALE
+  RETURN
+  COUNT_ADJUST
+}
+
+enum DocStatus {
+  DRAFT
+  POSTED
+  VOIDED
+}
+
+enum SaleStatus {
+  COMPLETED
+  VOIDED
+}
+
+enum TenderType {
+  CASH
+  CARD
+  CLICK
+  CREDIT
+}
+
+enum CashMoveType {
+  IN
+  OUT
+}
+
+enum ShiftStatus {
+  OPEN
+  CLOSED
+}
+
+enum DebtEntryType {
+  CREDIT_SALE
+  PAYMENT
+  RETURN_CREDIT
+  ADJUSTMENT
+}
+
+enum RoundingMode {
+  NONE
+  R10
+  R100
+  R1000
+}
+
+enum FiscalStatus {
+  NOT_REQUIRED
+  PENDING
+  SENT
+  FAILED
+}
+
+enum ImportStatus {
+  PENDING
+  VALIDATED
+  APPLIED
+  FAILED
+}
+
+model User {
+  id           String     @id @default(uuid())
+  name         String
+  login        String?    @unique
+  passwordHash String?
+  pinHash      String?
+  role         UserRole
+  status       UserStatus @default(ACTIVE)
+  createdAt    DateTime   @default(now())
+
+  sales     Sale[]
+  shifts    Shift[]
+  auditLogs AuditLog[]
+}
+
+model Category {
+  id       String    @id @default(uuid())
+  name     String    @unique
+  products Product[]
+}
+
+// Product.stock and Product.avgCost are a CACHE derived from StockLedgerEntry.
+// The only writer is StockService.applyMovement() — see B3 in the plan.
+// There is no Product.salePrice: every price lives on ProductUnit (the base
+// unit row has isBase=true) so a price never needs to be kept in sync twice.
+model Product {
+  id            String   @id @default(uuid())
+  sku           String   @unique
+  name          String
+  categoryId    String?
+  category      Category? @relation(fields: [categoryId], references: [id])
+  baseUnitLabel String
+  avgCost       Decimal  @default(0) @db.Decimal(18, 6)
+  stock         Decimal  @default(0) @db.Decimal(18, 6)
+  lastLedgerSeq BigInt   @default(0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  units    ProductUnit[]
+  barcodes Barcode[]
+  ledger   StockLedgerEntry[]
+
+  @@index([name])
+  @@index([categoryId, isActive])
+}
+
+model ProductUnit {
+  id        String  @id @default(uuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  label     String
+  factor    Decimal @db.Decimal(18, 6)
+  price     Decimal @db.Decimal(14, 2)
+  isBase    Boolean @default(false)
+  sortOrder Int     @default(0)
+
+  @@unique([productId, label])
+  @@index([productId, sortOrder])
+}
+
+model Barcode {
+  id         String  @id @default(uuid())
+  code       String  @unique
+  productId  String
+  product    Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  isInternal Boolean @default(false)
+
+  @@index([productId])
+}
+
+// Append-only. No service ever UPDATEs or DELETEs a row here; a void writes
+// a compensating entry. See CostingService for the moving-average formula.
+model StockLedgerEntry {
+  id           String     @id @default(uuid())
+  seq          BigInt     @default(autoincrement())
+  productId    String
+  product      Product    @relation(fields: [productId], references: [id])
+  type         LedgerType
+  qtyDelta     Decimal    @db.Decimal(18, 6)
+  balanceAfter Decimal    @db.Decimal(18, 6)
+  unitCost     Decimal    @db.Decimal(18, 6)
+  costDelta    Decimal    @db.Decimal(18, 6)
+  avgCostAfter Decimal    @db.Decimal(18, 6)
+  refType      String
+  refId        String
+  refLineId    String?
+  userId       String?
+  occurredAt   DateTime   @default(now())
+  note         String?
+
+  @@index([productId, seq])
+  @@index([productId, occurredAt])
+  @@index([refType, refId])
+  @@index([occurredAt])
+}
+
+model Supplier {
+  id            String     @id @default(uuid())
+  name          String
+  contactPerson String?
+  phone         String?
+  receipts      Receipt[]
+}
+
+model Receipt {
+  id             String        @id @default(uuid())
+  code           String        @unique
+  supplierId     String?
+  supplier       Supplier?     @relation(fields: [supplierId], references: [id])
+  status         DocStatus     @default(DRAFT)
+  note           String?
+  idempotencyKey String?       @unique
+  createdById    String
+  createdAt      DateTime      @default(now())
+  postedAt       DateTime?
+
+  lines ReceiptLine[]
+
+  @@index([status, createdAt])
+}
+
+model ReceiptLine {
+  id           String  @id @default(uuid())
+  receiptId    String
+  receipt      Receipt @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+  productId    String
+  unitLabel    String
+  unitFactor   Decimal @db.Decimal(18, 6)
+  qtyInUnit    Decimal @db.Decimal(18, 6)
+  qtyBase      Decimal @db.Decimal(18, 6)
+  unitCostPack Decimal @db.Decimal(14, 2)
+  unitCostBase Decimal @db.Decimal(18, 6)
+  lineTotal    Decimal @db.Decimal(14, 2)
+
+  @@index([receiptId])
+}
+
+model Shift {
+  id           String      @id @default(uuid())
+  openedById   String
+  openedBy     User        @relation(fields: [openedById], references: [id])
+  status       ShiftStatus @default(OPEN)
+  openingCash  Decimal     @db.Decimal(14, 2)
+  expectedCash Decimal?    @db.Decimal(14, 2)
+  countedCash  Decimal?    @db.Decimal(14, 2)
+  diffCash     Decimal?    @db.Decimal(14, 2)
+  openedAt     DateTime    @default(now())
+  closedAt     DateTime?
+
+  sales     Sale[]
+  cashMoves CashMovement[]
+
+  @@index([status, openedAt])
+}
+
+model CashMovement {
+  id        String       @id @default(uuid())
+  shiftId   String
+  shift     Shift        @relation(fields: [shiftId], references: [id])
+  type      CashMoveType
+  amount    Decimal      @db.Decimal(14, 2)
+  reason    String
+  userId    String
+  createdAt DateTime     @default(now())
+
+  @@index([shiftId, createdAt])
+}
+
+model Customer {
+  id          String   @id @default(uuid())
+  name        String
+  phone       String?
+  debtBalance Decimal  @default(0) @db.Decimal(14, 2)
+  note        String?
+  createdAt   DateTime @default(now())
+
+  entries CustomerDebtEntry[]
+
+  @@index([name])
+  @@index([phone])
+}
+
+model CustomerDebtEntry {
+  id           String        @id @default(uuid())
+  seq          BigInt        @default(autoincrement())
+  customerId   String
+  customer     Customer      @relation(fields: [customerId], references: [id])
+  type         DebtEntryType
+  amount       Decimal       @db.Decimal(14, 2)
+  balanceAfter Decimal       @db.Decimal(14, 2)
+  refType      String?
+  refId        String?
+  tender       TenderType?
+  userId       String
+  occurredAt   DateTime      @default(now())
+  note         String?
+
+  @@index([customerId, seq])
+  @@index([refType, refId])
+  @@index([occurredAt])
+}
+
+model Sale {
+  id             String       @id @default(uuid())
+  code           String       @unique
+  idempotencyKey String       @unique
+  shiftId        String
+  shift          Shift        @relation(fields: [shiftId], references: [id])
+  cashierId      String
+  cashier        User         @relation(fields: [cashierId], references: [id])
+  customerId     String?
+  status         SaleStatus   @default(COMPLETED)
+  subtotal       Decimal      @db.Decimal(14, 2)
+  discountPct    Decimal      @default(0) @db.Decimal(5, 2)
+  discountAmount Decimal      @default(0) @db.Decimal(14, 2)
+  roundingAdj    Decimal      @default(0) @db.Decimal(14, 2)
+  total          Decimal      @db.Decimal(14, 2)
+  paidAmount     Decimal      @db.Decimal(14, 2)
+  changeAmount   Decimal      @default(0) @db.Decimal(14, 2)
+  cogsTotal      Decimal      @db.Decimal(18, 6)
+  fiscalStatus   FiscalStatus @default(NOT_REQUIRED)
+  fiscalRef      String?
+  soldAt         DateTime
+  createdAt      DateTime     @default(now())
+  voidedAt       DateTime?
+
+  lines   SaleLine[]
+  tenders SaleTender[]
+  returns SaleReturn[]
+
+  @@index([soldAt])
+  @@index([shiftId])
+  @@index([customerId])
+  @@index([status, soldAt])
+}
+
+// unitCostBase is a SNAPSHOT taken at sale time — it never changes even if
+// the product's moving-average cost moves afterward. Reports must stay
+// retroactively stable; see plan.md "Tannarx va qoldiq".
+model SaleLine {
+  id              String  @id @default(uuid())
+  saleId          String
+  sale            Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  productId       String
+  productName     String
+  unitLabel       String
+  unitFactor      Decimal @db.Decimal(18, 6)
+  qtyInUnit       Decimal @db.Decimal(18, 6)
+  qtyBase         Decimal @db.Decimal(18, 6)
+  unitPrice       Decimal @db.Decimal(14, 2)
+  discountPct     Decimal @default(0) @db.Decimal(5, 2)
+  lineTotal       Decimal @db.Decimal(14, 2)
+  unitCostBase    Decimal @db.Decimal(18, 6)
+  lineCost        Decimal @db.Decimal(18, 6)
+  returnedQtyBase Decimal @default(0) @db.Decimal(18, 6)
+
+  @@index([saleId])
+  @@index([productId])
+}
+
+model SaleTender {
+  id     String     @id @default(uuid())
+  saleId String
+  sale   Sale       @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  type   TenderType
+  amount Decimal    @db.Decimal(14, 2)
+
+  @@index([saleId])
+}
+
+model SaleReturn {
+  id             String   @id @default(uuid())
+  code           String   @unique
+  saleId         String
+  sale           Sale     @relation(fields: [saleId], references: [id])
+  idempotencyKey String?  @unique
+  refundTotal    Decimal  @db.Decimal(14, 2)
+  refundTender   TenderType
+  costReversed   Decimal  @db.Decimal(18, 6)
+  shiftId        String?
+  userId         String
+  reason         String?
+  createdAt      DateTime @default(now())
+
+  lines SaleReturnLine[]
+
+  @@index([saleId])
+  @@index([createdAt])
+  @@index([shiftId])
+}
+
+model SaleReturnLine {
+  id           String     @id @default(uuid())
+  returnId     String
+  ret          SaleReturn @relation(fields: [returnId], references: [id], onDelete: Cascade)
+  saleLineId   String
+  productId    String
+  qtyBase      Decimal    @db.Decimal(18, 6)
+  refundAmount Decimal    @db.Decimal(14, 2)
+  unitCostBase Decimal    @db.Decimal(18, 6)
+
+  @@index([returnId])
+  @@index([saleLineId])
+}
+
+model InventoryCount {
+  id             String    @id @default(uuid())
+  code           String    @unique
+  status         DocStatus @default(DRAFT)
+  note           String?
+  createdById    String
+  createdAt      DateTime  @default(now())
+  postedAt       DateTime?
+  totalDiffValue Decimal?  @db.Decimal(18, 6)
+
+  lines InventoryCountLine[]
+}
+
+model InventoryCountLine {
+  id          String         @id @default(uuid())
+  countId     String
+  count       InventoryCount @relation(fields: [countId], references: [id], onDelete: Cascade)
+  productId   String
+  expectedQty Decimal        @db.Decimal(18, 6)
+  countedQty  Decimal        @db.Decimal(18, 6)
+  diffQty     Decimal        @db.Decimal(18, 6)
+  unitCost    Decimal        @db.Decimal(18, 6)
+  diffValue   Decimal        @db.Decimal(18, 6)
+
+  @@unique([countId, productId])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  action    String
+  entity    String
+  entityId  String?
+  detail    Json
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([action, createdAt])
+  @@index([userId, createdAt])
+}
+
+model Settings {
+  id                 Int          @id @default(1)
+  allowNegativeStock Boolean      @default(false)
+  roundingMode       RoundingMode @default(NONE)
+  lastClosedPeriodAt DateTime?
+  storeName          String       @default("BarakaSELL")
+  updatedAt          DateTime     @updatedAt
+}
+
+model ImportJob {
+  id          String       @id @default(uuid())
+  filename    String
+  mapping     Json
+  status      ImportStatus @default(PENDING)
+  totalRows   Int          @default(0)
+  validRows   Int          @default(0)
+  errorRows   Int          @default(0)
+  createdById String
+  createdAt   DateTime     @default(now())
+
+  rows ImportRow[]
+}
+
+model ImportRow {
+  id       String    @id @default(uuid())
+  jobId    String
+  job      ImportJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  rowIndex Int
+  raw      Json
+  errors   Json?
+  applied  Boolean   @default(false)
+
+  @@index([jobId, rowIndex])
+}

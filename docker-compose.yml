@@ -1,0 +1,58 @@
+# Local development stack: builds every app's image from source. Copy
+# .env.example to .env first — every variable here comes from it, no
+# fallback values.
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "${DB_PORT}:5432"
+    volumes:
+      - barakasell_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ./apps/api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      PORT: ${API_PORT}
+    ports:
+      - "${API_PORT}:${API_PORT}"
+
+  admin:
+    build:
+      context: ./apps/admin
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      PORT: ${ADMIN_PORT}
+    ports:
+      - "${ADMIN_PORT}:${ADMIN_PORT}"
+
+  pos:
+    build:
+      context: ./apps/pos
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "${POS_PORT}:3000"
+
+volumes:
+  barakasell_db_data:

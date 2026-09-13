@@ -1,0 +1,356 @@
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { Prisma } from '../../generated/prisma/client.js';
+import { PrismaService } from '../../common/prisma/prisma.service.js';
+import { StockService } from '../inventory/stock.service.js';
+import { AuditService } from '../audit/audit.service.js';
+import { CustomerDebtService } from '../customers/customer-debt.service.js';
+import { ShiftsService } from '../shifts/shifts.service.js';
+import { SettingsService } from '../settings/settings.service.js';
+import {
+  FISCAL_GATEWAY,
+  type FiscalGateway,
+} from '../fiscal/fiscal.gateway.js';
+import { applyRounding } from '../settings/rounding.util.js';
+import type { AuthUser } from '../../common/decorators/current-user.decorator.js';
+import { CreateSaleDto } from './dto/create-sale.dto.js';
+import { CreateSaleTenderDto } from './dto/create-sale-tender.dto.js';
+import { SyncSalesDto } from './dto/sync-sales.dto.js';
+
+const SALE_INCLUDE = {
+  lines: true,
+  tenders: true,
+  cashier: { select: { name: true } },
+} satisfies Prisma.SaleInclude;
+
+type TxClient = Prisma.TransactionClient;
+
+@Injectable()
+export class SalesService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly stockService: StockService,
+    private readonly auditService: AuditService,
+    private readonly customerDebtService: CustomerDebtService,
+    private readonly shiftsService: ShiftsService,
+    private readonly settingsService: SettingsService,
+    @Inject(FISCAL_GATEWAY) private readonly fiscalGateway: FiscalGateway,
+  ) {}
+
+  findAll(filter: {
+    from?: Date;
+    to?: Date;
+    shiftId?: string;
+    customerId?: string;
+    cursor?: string;
+    take?: number;
+  }) {
+    const take = Math.min(filter.take ?? 50, 200);
+    return this.prisma.sale.findMany({
+      where: {
+        shiftId: filter.shiftId,
+        customerId: filter.customerId,
+        soldAt:
+          filter.from || filter.to
+            ? { gte: filter.from, lte: filter.to }
+            : undefined,
+      },
+      include: SALE_INCLUDE,
+      orderBy: { soldAt: 'desc' },
+      take,
+      ...(filter.cursor ? { cursor: { id: filter.cursor }, skip: 1 } : {}),
+    });
+  }
+
+  async findOne(id: string) {
+    const sale = await this.prisma.sale.findUnique({
+      where: { id },
+      include: SALE_INCLUDE,
+    });
+    if (!sale) throw new NotFoundException('Sotuv topilmadi');
+    return sale;
+  }
+
+  async findByCode(code: string) {
+    const sale = await this.prisma.sale.findUnique({
+      where: { code },
+      include: SALE_INCLUDE,
+    });
+    if (!sale) throw new NotFoundException('Sotuv topilmadi');
+    return sale;
+  }
+
+  async create(dto: CreateSaleDto, idempotencyKey: string, user: AuthUser) {
+    // Offline POS retries the same sale after reconnecting; return the
+    // already-created row instead of erroring or double-selling stock.
+    const existing = await this.prisma.sale.findUnique({
+      where: { idempotencyKey },
+      include: SALE_INCLUDE,
+    });
+    if (existing) return existing;
+
+    const shift = await this.shiftsService.requireOpenShift(user.sub);
+
+    const hasCredit = dto.tenders.some((t) => t.type === 'CREDIT');
+    if (hasCredit && !dto.customerId) {
+      throw new BadRequestException('Nasiya uchun mijoz tanlanishi kerak');
+    }
+
+    const settings = await this.settingsService.get();
+
+    const sale = await this.prisma.$transaction(async (tx) => {
+      await this.stockService.lockProducts(
+        tx,
+        dto.lines.map((l) => l.productId),
+      );
+
+      const resolvedLines = await this.resolveLines(tx, dto.lines);
+      const subtotal = resolvedLines.reduce(
+        (acc, l) => acc.plus(l.lineTotal),
+        new Prisma.Decimal(0),
+      );
+
+      const discountPct = new Prisma.Decimal(dto.discountPct ?? 0);
+      const discountAmount = subtotal.times(discountPct).div(100);
+      const { rounded: total, adj: roundingAdj } = applyRounding(
+        subtotal.minus(discountAmount),
+        settings.roundingMode,
+      );
+
+      const { paidAmount, changeAmount } = this.settleTenders(
+        dto.tenders,
+        total,
+      );
+      if (paidAmount.lt(total)) {
+        throw new BadRequestException("To'lov miqdori jami summadan kam");
+      }
+
+      const code = await this.nextCode(tx);
+      const soldAt = dto.soldAt ? new Date(dto.soldAt) : new Date();
+
+      const created = await tx.sale.create({
+        data: {
+          code,
+          idempotencyKey,
+          shiftId: shift.id,
+          cashierId: user.sub,
+          customerId: dto.customerId,
+          subtotal,
+          discountPct,
+          discountAmount,
+          roundingAdj,
+          total,
+          paidAmount,
+          changeAmount,
+          cogsTotal: 0,
+          soldAt,
+        },
+      });
+
+      let cogsTotal = new Prisma.Decimal(0);
+      for (const line of resolvedLines) {
+        const entry = await this.stockService.applyMovement(tx, {
+          productId: line.productId,
+          type: 'SALE',
+          qtyDelta: line.qtyBase.negated(),
+          refType: 'sale',
+          refId: created.id,
+          userId: user.sub,
+        });
+        const lineCost = line.qtyBase.times(entry.unitCost);
+        cogsTotal = cogsTotal.plus(lineCost);
+
+        await tx.saleLine.create({
+          data: {
+            saleId: created.id,
+            productId: line.productId,
+            productName: line.productName,
+            unitLabel: line.unitLabel,
+            unitFactor: line.unitFactor,
+            qtyInUnit: line.qtyInUnit,
+            qtyBase: line.qtyBase,
+            unitPrice: line.unitPrice,
+            discountPct: line.discountPct,
+            lineTotal: line.lineTotal,
+            unitCostBase: entry.unitCost,
+            lineCost,
+          },
+        });
+      }
+
+      await tx.saleTender.createMany({
+        data: dto.tenders.map((t) => ({
+          saleId: created.id,
+          type: t.type,
+          amount: new Prisma.Decimal(t.amount),
+        })),
+      });
+
+      if (hasCredit && dto.customerId) {
+        const creditAmount = dto.tenders
+          .filter((t) => t.type === 'CREDIT')
+          .reduce((acc, t) => acc.plus(t.amount), new Prisma.Decimal(0));
+        await this.customerDebtService.write(tx, {
+          customerId: dto.customerId,
+          type: 'CREDIT_SALE',
+          amount: creditAmount,
+          tender: 'CREDIT',
+          refType: 'Sale',
+          refId: created.id,
+          userId: user.sub,
+        });
+      }
+
+      const finalized = await tx.sale.update({
+        where: { id: created.id },
+        data: { cogsTotal },
+        include: SALE_INCLUDE,
+      });
+
+      await this.auditService.write(tx, {
+        action: 'Sotuv',
+        entity: 'Sale',
+        entityId: created.id,
+        detail: {
+          code,
+          total: total.toString(),
+          discountAmount: discountAmount.toString(),
+        },
+        userId: user.sub,
+      });
+
+      return finalized;
+    });
+
+    // Fiscal registration happens AFTER commit — a fiscal failure must never
+    // roll back an already-completed sale. See plan.md "Kelajakka seam".
+    const fiscalResult = await this.fiscalGateway.registerSale({
+      saleId: sale.id,
+      code: sale.code,
+      soldAt: sale.soldAt,
+      total: sale.total,
+      lines: sale.lines.map((l) => ({
+        name: l.productName,
+        qtyBase: l.qtyBase,
+        unitPrice: l.unitPrice,
+        lineTotal: l.lineTotal,
+      })),
+      tenders: sale.tenders.map((t) => ({ type: t.type, amount: t.amount })),
+      cashierId: sale.cashierId,
+    });
+    if (fiscalResult.status !== sale.fiscalStatus) {
+      await this.prisma.sale.update({
+        where: { id: sale.id },
+        data: {
+          fiscalStatus: fiscalResult.status,
+          fiscalRef: fiscalResult.ref,
+        },
+      });
+    }
+
+    return sale;
+  }
+
+  async sync(dto: SyncSalesDto, user: AuthUser) {
+    const results: Array<{
+      idempotencyKey: string;
+      status: 'created' | 'duplicate' | 'failed';
+      saleId?: string;
+      message?: string;
+    }> = [];
+    for (const item of dto.sales) {
+      try {
+        const before = await this.prisma.sale.findUnique({
+          where: { idempotencyKey: item.idempotencyKey },
+        });
+        const sale = await this.create(item, item.idempotencyKey, user);
+        results.push({
+          idempotencyKey: item.idempotencyKey,
+          status: before ? 'duplicate' : 'created',
+          saleId: sale.id,
+        });
+      } catch (err) {
+        results.push({
+          idempotencyKey: item.idempotencyKey,
+          status: 'failed',
+          message: err instanceof Error ? err.message : "Noma'lum xatolik",
+        });
+      }
+    }
+    return results;
+  }
+
+  private async resolveLines(tx: TxClient, lines: CreateSaleDto['lines']) {
+    const resolved = [];
+    for (const line of lines) {
+      const product = await tx.product.findUnique({
+        where: { id: line.productId },
+      });
+      if (!product)
+        throw new BadRequestException(`Tovar topilmadi: ${line.productId}`);
+      const unit = await tx.productUnit.findUnique({
+        where: {
+          productId_label: { productId: line.productId, label: line.unitLabel },
+        },
+      });
+      if (!unit)
+        throw new BadRequestException(
+          `"${line.unitLabel}" birligi shu tovar uchun topilmadi`,
+        );
+
+      const qtyInUnit = new Prisma.Decimal(line.qtyInUnit);
+      const qtyBase = qtyInUnit.times(unit.factor);
+      const unitPrice =
+        line.unitPrice !== undefined
+          ? new Prisma.Decimal(line.unitPrice)
+          : unit.price;
+      const discountPct = new Prisma.Decimal(line.discountPct ?? 0);
+      const gross = qtyInUnit.times(unitPrice);
+      const lineTotal = gross.minus(gross.times(discountPct).div(100));
+
+      resolved.push({
+        productId: line.productId,
+        productName: product.name,
+        unitLabel: unit.label,
+        unitFactor: unit.factor,
+        qtyInUnit,
+        qtyBase,
+        unitPrice,
+        discountPct,
+        lineTotal,
+      });
+    }
+    return resolved;
+  }
+
+  // CASH is the only tender that can produce change: non-cash tenders (CARD/
+  // CLICK/CREDIT) cover the total first, and any cash beyond what's left
+  // owed is handed back. paidAmount is capped at total so it never overstates
+  // what was actually applied to the sale. See plan.md "To'lov".
+  private settleTenders(tenders: CreateSaleTenderDto[], total: Prisma.Decimal) {
+    const cashTotal = tenders
+      .filter((t) => t.type === 'CASH')
+      .reduce((acc, t) => acc.plus(t.amount), new Prisma.Decimal(0));
+    const nonCashTotal = tenders
+      .filter((t) => t.type !== 'CASH')
+      .reduce((acc, t) => acc.plus(t.amount), new Prisma.Decimal(0));
+    const owedForCash = Prisma.Decimal.max(0, total.minus(nonCashTotal));
+    const changeAmount = Prisma.Decimal.max(0, cashTotal.minus(owedForCash));
+    const paidAmount = Prisma.Decimal.min(
+      total,
+      cashTotal.plus(nonCashTotal).minus(changeAmount),
+    );
+    return { paidAmount, changeAmount };
+  }
+
+  private async nextCode(tx: TxClient): Promise<string> {
+    const [{ nextval }] = await tx.$queryRaw<
+      { nextval: bigint }[]
+    >`SELECT nextval('sale_code_seq')`;
+    return `#${nextval.toString()}`;
+  }
+}

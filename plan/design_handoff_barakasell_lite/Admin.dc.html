@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;700&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<style>
+  *,*::before,*::after{box-sizing:border-box;}
+  body{margin:0;background:#f2f2f3;font-family:Barlow,system-ui,sans-serif;color:#1d1f20;}
+  @keyframes pulse{0%,100%{opacity:.5}50%{opacity:1}}
+</style>
+</helmet>
+
+<div style="min-height:100vh;display:flex;flex-direction:column;">
+
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#e7e7ea;border-bottom:1px solid rgba(29,31,32,0.16);padding:8px 16px;">
+    <span style="font-family:'Barlow Condensed';font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:rgba(29,31,32,0.55);margin-right:6px;">Prototip boshqaruvi</span>
+    <button onclick="{{ h.setRoleAdmin }}" style="font-family:'Barlow Condensed';font-size:12px;padding:5px 10px;background:{{ roleAdminBg }};color:{{ roleAdminColor }};border:1px solid rgba(29,31,32,0.3);cursor:pointer;">Rol: Admin</button>
+    <button onclick="{{ h.setRoleKassir }}" style="font-family:'Barlow Condensed';font-size:12px;padding:5px 10px;background:{{ roleKassirBg }};color:{{ roleKassirColor }};border:1px solid rgba(29,31,32,0.3);cursor:pointer;">Rol: Kassir</button>
+    <span style="width:1px;height:20px;background:rgba(29,31,32,0.25);"></span>
+    <span style="font-size:12px;color:rgba(29,31,32,0.55);">Tovarlar ro'yxati holati:</span>
+    <button onclick="{{ h.cycleListState }}" style="font-family:'Barlow Condensed';font-size:12px;padding:5px 10px;background:transparent;border:1px solid rgba(29,31,32,0.3);cursor:pointer;">{{ listStateLabel }}</button>
+  </div>
+
+  <sc-if value="{{ noPermission }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:40px;">
+      <div style="width:64px;height:64px;border-radius:50%;background:#e9e9ea;display:flex;align-items:center;justify-content:center;font-size:28px;color:rgba(29,31,32,0.4);">⛔</div>
+      <div style="font-family:'Barlow Condensed';font-size:22px;font-weight:600;">Ruxsat yo'q</div>
+      <div style="font-size:14px;color:rgba(29,31,32,0.55);text-align:center;max-width:360px;">Kassir roli admin panelga kira olmaydi. Bu bo'lim faqat do'kon egasi uchun ochiq.</div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ hasPermission }}" hint-placeholder-val="{{ true }}">
+  <div style="flex:1;display:flex;min-width:0;">
+
+    <div style="width:220px;flex:none;background:#e9e9ea;border-right:1px solid rgba(29,31,32,0.16);padding:16px 0;display:flex;flex-direction:column;">
+      <div style="font-family:'Barlow Condensed';font-weight:700;font-size:18px;padding:0 16px 16px;">BarakaSELL</div>
+
+      <div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:rgba(29,31,32,0.45);padding:8px 16px 4px;">Boshqaruv</div>
+      <button onclick="{{ h.goDashboard }}" style="text-align:left;padding:9px 16px;background:{{ navBg.dashboard }};border:none;border-left:3px solid {{ navBorder.dashboard }};cursor:pointer;font-size:14px;color:#1d1f20;">Dashboard</button>
+
+      <div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:rgba(29,31,32,0.45);padding:12px 16px 4px;">Ombor</div>
+      <button onclick="{{ h.goProducts }}" style="text-align:left;padding:9px 16px;background:{{ navBg.products }};border:none;border-left:3px solid {{ navBorder.products }};cursor:pointer;font-size:14px;color:#1d1f20;">Tovarlar</button>
+      <button onclick="{{ h.goExcelImport }}" style="text-align:left;padding:9px 16px;background:{{ navBg.excel }};border:none;border-left:3px solid {{ navBorder.excel }};cursor:pointer;font-size:14px;color:#1d1f20;">Excel'dan import</button>
+      <button onclick="{{ h.goIncomingList }}" style="text-align:left;padding:9px 16px;background:{{ navBg.incoming }};border:none;border-left:3px solid {{ navBorder.incoming }};cursor:pointer;font-size:14px;color:#1d1f20;">Kirim hujjatlari</button>
+      <button onclick="{{ h.goSuppliers }}" style="text-align:left;padding:9px 16px;background:{{ navBg.suppliers }};border:none;border-left:3px solid {{ navBorder.suppliers }};cursor:pointer;font-size:14px;color:#1d1f20;">Yetkazib beruvchilar</button>
+      <button onclick="{{ h.goInventory }}" style="text-align:left;padding:9px 16px;background:{{ navBg.inventory }};border:none;border-left:3px solid {{ navBorder.inventory }};cursor:pointer;font-size:14px;color:#1d1f20;">Inventarizatsiya</button>
+
+      <div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:rgba(29,31,32,0.45);padding:12px 16px 4px;">Mijozlar</div>
+      <button onclick="{{ h.goCustomers }}" style="text-align:left;padding:9px 16px;background:{{ navBg.customers }};border:none;border-left:3px solid {{ navBorder.customers }};cursor:pointer;font-size:14px;color:#1d1f20;">Mijozlar va nasiya</button>
+
+      <div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:rgba(29,31,32,0.45);padding:12px 16px 4px;">Hisobotlar</div>
+      <button onclick="{{ h.goReports }}" style="text-align:left;padding:9px 16px;background:{{ navBg.reports }};border:none;border-left:3px solid {{ navBorder.reports }};cursor:pointer;font-size:14px;color:#1d1f20;">Hisobotlar</button>
+
+      <div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:rgba(29,31,32,0.45);padding:12px 16px 4px;">Tizim</div>
+      <button onclick="{{ h.goAuditLog }}" style="text-align:left;padding:9px 16px;background:{{ navBg.audit }};border:none;border-left:3px solid {{ navBorder.audit }};cursor:pointer;font-size:14px;color:#1d1f20;">Audit log</button>
+      <button onclick="{{ h.goUsers }}" style="text-align:left;padding:9px 16px;background:{{ navBg.users }};border:none;border-left:3px solid {{ navBorder.users }};cursor:pointer;font-size:14px;color:#1d1f20;">Foydalanuvchilar</button>
+      <button onclick="{{ h.goSettings }}" style="text-align:left;padding:9px 16px;background:{{ navBg.settings }};border:none;border-left:3px solid {{ navBorder.settings }};cursor:pointer;font-size:14px;color:#1d1f20;">Sozlamalar</button>
+
+      <div style="margin-top:auto;padding:14px 16px;border-top:1px solid rgba(29,31,32,0.16);font-size:12px;color:rgba(29,31,32,0.55);">Egasi hisobi</div>
+    </div>
+
+    <div style="flex:1;min-width:0;padding:24px 28px;overflow:auto;">
+
+      <!-- DASHBOARD -->
+      <sc-if value="{{ isDashboard }}" hint-placeholder-val="{{ true }}">
+        <div style="font-family:'Barlow Condensed';font-size:24px;font-weight:600;margin-bottom:4px;">Dashboard</div>
+        <div style="font-size:13px;color:rgba(29,31,32,0.55);margin-bottom:20px;">Bugun, {{ todayLabel }}</div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:24px;">
+          <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+            <div style="position:relative;border:1px solid rgba(29,31,32,0.16);padding:16px;">
+              <i style="position:absolute;top:-6px;left:-6px;width:11px;height:11px;"><i style="position:absolute;left:5px;top:0;width:1px;height:100%;background:rgba(29,31,32,0.55);"></i><i style="position:absolute;top:5px;left:0;width:100%;height:1px;background:rgba(29,31,32,0.55);"></i></i>
+              <i style="position:absolute;top:-6px;right:-6px;width:11px;height:11px;"><i style="position:absolute;left:5px;top:0;width:1px;height:100%;background:rgba(29,31,32,0.55);"></i><i style="position:absolute;top:5px;left:0;width:100%;height:1px;background:rgba(29,31,32,0.55);"></i></i>
+              <i style="position:absolute;bottom:-6px;left:-6px;width:11px;height:11px;"><i style="position:absolute;left:5px;top:0;width:1px;height:100%;background:rgba(29,31,32,0.55);"></i><i style="position:absolute;top:5px;left:0;width:100%;height:1px;background:rgba(29,31,32,0.55);"></i></i>
+              <i style="position:absolute;bottom:-6px;right:-6px;width:11px;height:11px;"><i style="position:absolute;left:5px;top:0;width:1px;height:100%;background:rgba(29,31,32,0.55);"></i><i style="position:absolute;top:5px;left:0;width:100%;height:1px;background:rgba(29,31,32,0.55);"></i></i>
+              <div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:#416180;margin-bottom:8px;">{{ k.label }}</div>
+              <div style="font-family:'Barlow Condensed';font-size:26px;font-weight:700;color:{{ k.color }};">{{ k.value }}</div>
+              <div style="font-size:12px;color:rgba(29,31,32,0.5);margin-top:4px;">{{ k.sub }}</div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+          <div style="border:1px solid rgba(29,31,32,0.16);padding:16px;">
+            <div style="font-family:'Barlow Condensed';font-weight:600;font-size:15px;margin-bottom:10px;">Top sotilgan tovarlar</div>
+            <sc-for list="{{ topProducts }}" as="tp" hint-placeholder-count="5">
+              <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(29,31,32,0.08);font-size:13px;">
+                <span>{{ tp.name }}</span><span style="color:rgba(29,31,32,0.55);">{{ tp.qtyLabel }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="border:1px solid rgba(29,31,32,0.16);padding:16px;">
+            <div style="font-family:'Barlow Condensed';font-weight:600;font-size:15px;margin-bottom:10px;">Qoldig'i tugayotgan tovarlar</div>
+            <sc-for list="{{ lowStockList }}" as="lp" hint-placeholder-count="5">
+              <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(29,31,32,0.08);font-size:13px;">
+                <span>{{ lp.name }}</span><span style="color:#a23b2e;">{{ lp.stockLabel }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="border:1px solid rgba(29,31,32,0.16);padding:16px;">
+          <div style="font-family:'Barlow Condensed';font-weight:600;font-size:15px;margin-bottom:10px;">Oxirgi smenalar</div>
+          <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead><tr>
+              <th style="text-align:left;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(29,31,32,0.5);padding:6px 8px;border-bottom:1px solid rgba(29,31,32,0.16);">Sana</th>
+              <th style="text-align:left;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(29,31,32,0.5);padding:6px 8px;border-bottom:1px solid rgba(29,31,32,0.16);">Kassir</th>
+              <th style="text-align:right;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(29,31,32,0.5);padding:6px 8px;border-bottom:1px solid rgba(29,31,32,0.16);">Tushum</th>
+              <th style="text-align:right;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(29,31,32,0.5);padding:6px 8px;border-bottom:1px solid rgba(29,31,32,0.16);">Naqd farqi</th>
+            </tr></thead>
+            <tbody>
+              <sc-for list="{{ recentShifts }}" as="sh" hint-placeholder-count="4">
+                <tr>
+                  <td style="padding:7px 8px;border-bottom:1px solid rgba(29,31,32,0.08);">{{ sh.date }}</td>
+                  <td style="padding:7px 8px;border-bottom:1px solid rgba(29,31,32,0.08);">{{ sh.cashier }}</td>
+                  <td style="padding:7px 8px;border-bottom:1px solid rgba(29,31,32,0.08);text-align:right;">{{ sh.totalLabel }}</td>
+                  <td style="padding:7px 8px;border-bottom:1px solid rgba(29,31,32,0.08);text-align:right;color:{{ sh.diffColor }};">{{ sh.diffLabel }}</td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </sc-if>
+
+      <!-- PRODUCTS LIST -->
+      <sc-if value="{{ isProducts }}" hint-placeholder-val="{{ false }}">
+        <div style="font-family:'Barlow Condensed';font-size:24px;font-weight:600;margin-bottom:16px;">Tovarlar</div>
+        <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center;">
+          <input type="text" placeholder="Nom yoki shtrix-kod bo'yicha qidirish..." value="{{ pSearch }}" oninput="{{ h.onPSearch }}" style="flex:1;min-width:220px;height:38px;padding:0 12px;font-size:14px;background:#e9e9ea;border:1px solid rgba(29,31,32,0.16);color:#1d1f20;" />
+          <select onchange="{{ h.onCategoryFilter }}" style="height:38px;padding:0 10px;font-size:13px;background:#e9e9ea;border:1px solid rgba(29,31,32,0.16);color:#1d1f20;">
+            <option value="">Barcha kategoriyalar</option>
+            <sc-for list="{{ categoryOptions }}" as="co" hint-placeholder-count="5">
+              <option value="{{ co.value }}">{{ co.value }}</option>
+            </sc-for>
+          </select>
+          <div style="display:inline-flex;border:1px solid rgba(29,31,32,0.2);">
+            <button onclick="{{ h.setStockFilter_all }}" style="padding:8px 12px;font-size:12px;font-family:'Barlow Condensed';cursor:pointer;border:none;background:{{ stockFilterBg.all }};color:{{ stockFilterColor.all }};">Hammasi</button>
+            <button onclick="{{ h.setStockFilter_low }}" style="padding:8px 12px;font-size:12px;font-family:'Barlow Condensed';cursor:pointer;border:none;border-left:1px solid rgba(29,31,32,0.2);background:{{ stockFilterBg.low }};color:{{ stockFilterColor.low }};">Kam qoldi</button>
+            <button onclick="{{ h.setStockFilter_out }}" style="padding:8px 12px;font-size:12px;font-family:'Barlow Condensed';cursor:pointer;border:none;border-left:1px solid rgba(29,31,32,0.2);background:{{ stockFilterBg.out }};color:{{ stockFilterColor.out }};">Tugagan</button>
+          </div>
+        </div>
+
+        <sc-if value="{{ listLoading }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div style="height:40px;background:#e7e7ea;animation:pulse 1.2s infinite;"></div>
+            <div style="height:40px;background:#e7e7ea;animation:pulse 1.2s infinite;"></div>
+            <div style="height:40px;background:#e7e7ea;animation:pulse 1.2s infinite;"></div>
+            <div style="height:40px;background:#e7e7ea;animation:pulse 1.2s infinite;"></div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ listErr }}" hint-placeholder-val="{{ false }}">
+          <div style="text-align:center;color:rgba(29,31,32,0.6);font-size:14px;padding:60px 10px;display:flex;flex-direction:column;align-items:center;gap:12px;">
+            <div>Ro'yxatni yuklab bo'lmadi</div>
+            <button onclick="{{ h.cycleListState }}" style="padding:9px 18px;background:transparent;border:1px solid rgba(29,31,32,0.3);cursor:pointer;font-family:'Barlow Condensed';font-size:13px;">Qayta urinish</button>
+          </div>
+        </sc-if>
+        <sc-if value="{{ listEmpty }}" hint-placeholder-val="{{ false }}">
+          <div style="text-align:center;color:rgba(29,31,32,0.45);font-size:14px;padding:60px 10px;">Mos tovar topilmadi</div>
+        </sc-if>
+
+        <sc-if value="{{ listOk }}" hint-placeholder-val="{{ true }}">
+          <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:760px;">
+            <thead><tr>
+              <th style="text-align:left;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Nomi</th>
+              <th style="text-align:left;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Kategoriya</th>
+              <th style="text-align:right;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Qoldiq</th>
+              <th style="text-align:right;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Sotuv narxi</th>
+              <th style="text-align:right;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Tannarx</th>
+              <th style="text-align:left;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Holat</th>
+            </tr></thead>
+            <tbody>
+              <sc-for list="{{ productRows }}" as="p" hint-placeholder-count="10">
+                <tr onclick="{{ p.onClick }}" style="cursor:pointer;">
+                  <td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);">{{ p.name }}</td>
+                  <td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);color:rgba(29,31,32,0.6);">{{ p.category }}</td>
+                  <td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);text-align:right;">{{ p.stockLabel }}</td>
+                  <td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);text-align:right;">{{ p.priceLabel }}</td>
+                  <td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);text-align:right;color:rgba(29,31,32,0.6);">{{ p.costLabel }}</td>
+                  <td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);">
+                    <span style="font-size:11px;padding:2px 8px;border:1px solid {{ p.tagBorder }};color:{{ p.tagColor }};">{{ p.tagLabel }}</span>
+                  </td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+          </div>
+          <div style="font-size:12px;color:rgba(29,31,32,0.5);margin-top:10px;">5 412 tadan 1–{{ productRowCount }} ko'rsatilmoqda</div>
+        </sc-if>
+      </sc-if>
+
+      <!-- PRODUCT DETAIL -->
+      <sc-if value="{{ isProductDetail }}" hint-placeholder-val="{{ false }}">
+        <button onclick="{{ h.backToProducts }}" style="background:none;border:none;color:#416180;font-size:13px;cursor:pointer;margin-bottom:12px;padding:0;">‹ Tovarlar ro'yxatiga</button>
+        <div style="font-family:'Barlow Condensed';font-size:22px;font-weight:600;">{{ pd.name }}</div>
+        <div style="font-size:13px;color:rgba(29,31,32,0.55);margin-bottom:20px;">{{ pd.category }}</div>
+
+        <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:16px;margin-bottom:16px;">
+          <div style="border:1px solid rgba(29,31,32,0.16);padding:16px;">
+            <div style="font-family:'Barlow Condensed';font-weight:600;font-size:14px;margin-bottom:10px;">O'lchov birliklari</div>
+            <sc-for list="{{ pd.units }}" as="u" hint-placeholder-count="3">
+              <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(29,31,32,0.08);font-size:13px;">
+                <span>{{ u.label }}</span><span style="color:rgba(29,31,32,0.6);">{{ u.factorLabel }}</span><span style="font-weight:500;">{{ u.priceLabel }}</span>
+              </div>
+            </sc-for>
+            <div style="font-family:'Barlow Condensed';font-weight:600;font-size:14px;margin:16px 0 8px;">Shtrix-kodlar</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <sc-for list="{{ pd.barcodes }}" as="b" hint-placeholder-count="2">
+                <span style="font-size:12px;padding:4px 10px;background:#eef6ff;color:#2c455d;font-family:ui-monospace,monospace;">{{ b }}</span>
+              </sc-for>
+            </div>
+          </div>
+          <div style="border:1px solid rgba(29,31,32,0.16);padding:16px;display:flex;flex-direction:column;gap:10px;">
+            <div><div style="font-size:11px;color:rgba(29,31,32,0.5);">Joriy qoldiq</div><div style="font-family:'Barlow Condensed';font-size:20px;font-weight:700;">{{ pd.stockLabel }}</div></div>
+            <div><div style="font-size:11px;color:rgba(29,31,32,0.5);">O'rtacha tannarx (asosiy birlik)</div><div style="font-family:'Barlow Condensed';font-size:18px;font-weight:600;">{{ pd.costLabel }}</div></div>
+            <div><div style="font-size:11px;color:rgba(29,31,32,0.5);">Sotuv narxi (asosiy birlik)</div><div style="font-family:'Barlow Condensed';font-size:18px;font-weight:600;color:#416180;">{{ pd.priceLabel2 }}</div></div>
+          </div>
+        </div>
+
+        <div style="border:1px solid rgba(29,31,32,0.16);padding:16px;">
+          <div style="font-family:'Barlow Condensed';font-weight:600;font-size:14px;margin-bottom:10px;">Harakatlar tarixi</div>
+          <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead><tr>
+              <th style="text-align:left;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(29,31,32,0.5);padding:6px 8px;border-bottom:1px solid rgba(29,31,32,0.16);">Sana</th>
+              <th style="text-align:left;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(29,31,32,0.5);padding:6px 8px;border-bottom:1px solid rgba(29,31,32,0.16);">Turi</th>
+              <th style="text-align:right;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(29,31,32,0.5);padding:6px 8px;border-bottom:1px solid rgba(29,31,32,0.16);">Miqdor</th>
+              <th style="text-align:right;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(29,31,32,0.5);padding:6px 8px;border-bottom:1px solid rgba(29,31,32,0.16);">Qoldiq (keyin)</th>
+            </tr></thead>
+            <tbody>
+              <sc-for list="{{ pd.history }}" as="hi" hint-placeholder-count="4">
+                <tr>
+                  <td style="padding:7px 8px;border-bottom:1px solid rgba(29,31,32,0.08);">{{ hi.date }}</td>
+                  <td style="padding:7px 8px;border-bottom:1px solid rgba(29,31,32,0.08);"><span style="font-size:11px;padding:2px 8px;border:1px solid {{ hi.tagBorder }};color:{{ hi.tagColor }};">{{ hi.type }}</span></td>
+                  <td style="padding:7px 8px;border-bottom:1px solid rgba(29,31,32,0.08);text-align:right;color:{{ hi.qtyColor }};">{{ hi.qtyLabel }}</td>
+                  <td style="padding:7px 8px;border-bottom:1px solid rgba(29,31,32,0.08);text-align:right;">{{ hi.afterLabel }}</td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </sc-if>
+
+      <!-- EXCEL IMPORT -->
+      <sc-if value="{{ isExcelImport }}" hint-placeholder-val="{{ false }}">
+        <div style="font-family:'Barlow Condensed';font-size:24px;font-weight:600;margin-bottom:16px;">Excel'dan import</div>
+        <sc-if value="{{ importIdle }}" hint-placeholder-val="{{ true }}">
+          <div style="border:1px dashed rgba(29,31,32,0.35);padding:40px;text-align:center;max-width:520px;">
+            <div style="font-size:14px;color:rgba(29,31,32,0.6);margin-bottom:14px;">Excel faylni bu yerga tashlang yoki tanlang</div>
+            <button onclick="{{ h.simulateUpload }}" style="padding:10px 18px;background:#5980a6;border:1px solid #5980a6;color:#f2f2f3;font-family:'Barlow Condensed';font-size:14px;font-weight:600;cursor:pointer;">Fayl tanlash</button>
+          </div>
+        </sc-if>
+        <sc-if value="{{ importReady }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size:13px;color:rgba(29,31,32,0.6);margin-bottom:14px;">Fayl: <b>mahsulotlar_2026.xlsx</b> · 5 000 qator</div>
+          <div style="font-family:'Barlow Condensed';font-weight:600;font-size:14px;margin-bottom:8px;">Ustunlarni mos qo'yish</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:520px;margin-bottom:20px;">
+            <sc-for list="{{ importMappings }}" as="im" hint-placeholder-count="5">
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#e9e9ea;border:1px solid rgba(29,31,32,0.16);font-size:13px;"><span style="color:rgba(29,31,32,0.6);">{{ im.source }}</span><span>→</span><span style="font-weight:500;">{{ im.target }}</span></div>
+            </sc-for>
+          </div>
+          <div style="font-family:'Barlow Condensed';font-weight:600;font-size:14px;margin-bottom:8px;">Ko'rib chiqish</div>
+          <table style="width:100%;border-collapse:collapse;font-size:13px;max-width:720px;margin-bottom:14px;">
+            <thead><tr><th style="text-align:left;font-size:11px;color:rgba(29,31,32,0.5);padding:6px 8px;border-bottom:1px solid rgba(29,31,32,0.16);">Qator</th><th style="text-align:left;font-size:11px;color:rgba(29,31,32,0.5);padding:6px 8px;border-bottom:1px solid rgba(29,31,32,0.16);">Tovar</th><th style="text-align:left;font-size:11px;color:rgba(29,31,32,0.5);padding:6px 8px;border-bottom:1px solid rgba(29,31,32,0.16);">Holat</th></tr></thead>
+            <tbody>
+              <sc-for list="{{ importPreviewRows }}" as="ir" hint-placeholder-count="5">
+                <tr>
+                  <td style="padding:6px 8px;border-bottom:1px solid rgba(29,31,32,0.08);">{{ ir.row }}</td>
+                  <td style="padding:6px 8px;border-bottom:1px solid rgba(29,31,32,0.08);">{{ ir.name }}</td>
+                  <td style="padding:6px 8px;border-bottom:1px solid rgba(29,31,32,0.08);"><span style="font-size:11px;padding:2px 8px;border:1px solid {{ ir.tagBorder }};color:{{ ir.tagColor }};">{{ ir.tagLabel }}</span></td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+          <div style="font-size:13px;color:rgba(29,31,32,0.7);margin-bottom:14px;">4 986 qator tayyor · 14 qatorda xato (narx yo'q yoki kategoriya noaniq)</div>
+          <button onclick="{{ h.confirmImport }}" style="padding:12px 20px;background:#5980a6;border:1px solid #5980a6;color:#f2f2f3;font-family:'Barlow Condensed';font-size:14px;font-weight:600;cursor:pointer;">Tasdiqlash va import qilish</button>
+        </sc-if>
+        <sc-if value="{{ importDone }}" hint-placeholder-val="{{ false }}">
+          <div style="color:#2c6b3f;font-size:15px;font-family:'Barlow Condensed';font-weight:600;">4 986 tovar muvaffaqiyatli import qilindi.</div>
+          <button onclick="{{ h.resetImport }}" style="margin-top:14px;padding:10px 18px;background:transparent;border:1px solid rgba(29,31,32,0.3);font-family:'Barlow Condensed';font-size:13px;cursor:pointer;">Yana import qilish</button>
+        </sc-if>
+      </sc-if>
+
+      <!-- INCOMING LIST / DOC -->
+      <sc-if value="{{ isIncomingList }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <div style="font-family:'Barlow Condensed';font-size:24px;font-weight:600;">Kirim hujjatlari</div>
+          <button onclick="{{ h.goIncomingDoc }}" style="padding:9px 16px;background:#5980a6;border:1px solid #5980a6;color:#f2f2f3;font-family:'Barlow Condensed';font-size:13px;font-weight:600;cursor:pointer;">+ Yangi hujjat</button>
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead><tr>
+            <th style="text-align:left;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Sana</th>
+            <th style="text-align:left;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Yetkazib beruvchi</th>
+            <th style="text-align:right;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Jami</th>
+            <th style="text-align:left;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Holat</th>
+          </tr></thead>
+          <tbody>
+            <sc-for list="{{ incomingDocs }}" as="d" hint-placeholder-count="4">
+              <tr onclick="{{ d.onClick }}" style="cursor:pointer;">
+                <td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);">{{ d.date }}</td>
+                <td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);">{{ d.supplier }}</td>
+                <td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);text-align:right;">{{ d.totalLabel }}</td>
+                <td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);"><span style="font-size:11px;padding:2px 8px;border:1px solid {{ d.tagBorder }};color:{{ d.tagColor }};">{{ d.statusLabel }}</span></td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </sc-if>
+
+      <sc-if value="{{ isIncomingDoc }}" hint-placeholder-val="{{ false }}">
+        <button onclick="{{ h.goIncomingList }}" style="background:none;border:none;color:#416180;font-size:13px;cursor:pointer;margin-bottom:12px;padding:0;">‹ Kirim hujjatlariga</button>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <div style="font-family:'Barlow Condensed';font-size:22px;font-weight:600;">Kirim hujjati</div>
+          <span style="font-size:12px;padding:3px 10px;border:1px solid {{ docStatusBorder }};color:{{ docStatusColor }};">{{ docStatusLabel }}</span>
+        </div>
+        <div style="display:flex;gap:10px;margin-bottom:16px;">
+          <select style="height:38px;padding:0 10px;font-size:13px;background:#e9e9ea;border:1px solid rgba(29,31,32,0.16);color:#1d1f20;"><option>{{ docSupplier }}</option></select>
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:12px;">
+          <thead><tr>
+            <th style="text-align:left;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Tovar</th>
+            <th style="text-align:left;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Birlik</th>
+            <th style="text-align:right;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Miqdor</th>
+            <th style="text-align:right;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Xarid narxi</th>
+            <th style="text-align:right;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Jami</th>
+          </tr></thead>
+          <tbody>
+            <sc-for list="{{ docItems }}" as="di" hint-placeholder-count="4">
+              <tr>
+                <td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);">{{ di.name }}</td>
+                <td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);color:rgba(29,31,32,0.6);">{{ di.unit }}</td>
+                <td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);text-align:right;">{{ di.qtyLabel }}</td>
+                <td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);text-align:right;">{{ di.priceLabel }}</td>
+                <td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);text-align:right;font-weight:500;">{{ di.sumLabel }}</td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+        <div style="display:flex;justify-content:flex-end;gap:20px;align-items:baseline;margin-bottom:16px;">
+          <span style="font-family:'Barlow Condensed';font-size:15px;font-weight:600;">JAMI</span>
+          <span style="font-family:'Barlow Condensed';font-size:22px;font-weight:700;color:#416180;">{{ docTotalLabel }}</span>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button onclick="{{ h.saveDraft }}" style="padding:10px 18px;background:transparent;border:1px solid rgba(29,31,32,0.3);font-family:'Barlow Condensed';font-size:13px;cursor:pointer;">Qoralama saqlash</button>
+          <button onclick="{{ h.confirmDoc }}" style="padding:10px 18px;background:#5980a6;border:1px solid #5980a6;color:#f2f2f3;font-family:'Barlow Condensed';font-size:13px;font-weight:600;cursor:pointer;">Tasdiqlash</button>
+        </div>
+      </sc-if>
+
+      <!-- SUPPLIERS -->
+      <sc-if value="{{ isSuppliers }}" hint-placeholder-val="{{ false }}">
+        <div style="font-family:'Barlow Condensed';font-size:24px;font-weight:600;margin-bottom:16px;">Yetkazib beruvchilar</div>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead><tr>
+            <th style="text-align:left;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Nomi</th>
+            <th style="text-align:left;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Mas'ul shaxs</th>
+            <th style="text-align:left;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Telefon</th>
+            <th style="text-align:left;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Oxirgi kirim</th>
+            <th style="text-align:right;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Jami xarid</th>
+          </tr></thead>
+          <tbody>
+            <sc-for list="{{ suppliers }}" as="sp" hint-placeholder-count="4">
+              <tr>
+                <td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);">{{ sp.name }}</td>
+                <td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);color:rgba(29,31,32,0.6);">{{ sp.contact }}</td>
+                <td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);color:rgba(29,31,32,0.6);">{{ sp.phone }}</td>
+                <td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);color:rgba(29,31,32,0.6);">{{ sp.lastDate }}</td>
+                <td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);text-align:right;">{{ sp.totalLabel }}</td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </sc-if>
+
+      <!-- CUSTOMERS -->
+      <sc-if value="{{ isCustomers }}" hint-placeholder-val="{{ false }}">
+        <div style="font-family:'Barlow Condensed';font-size:24px;font-weight:600;margin-bottom:16px;">Mijozlar va nasiya</div>
+        <div style="display:flex;gap:20px;">
+          <div style="width:360px;flex:none;">
+            <table style="width:100%;border-collapse:collapse;font-size:13px;">
+              <thead><tr>
+                <th style="text-align:left;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Mijoz</th>
+                <th style="text-align:right;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Qarz</th>
+              </tr></thead>
+              <tbody>
+                <sc-for list="{{ adminCustomers }}" as="ac" hint-placeholder-count="3">
+                  <tr onclick="{{ ac.onClick }}" style="cursor:pointer;background:{{ ac.rowBg }};">
+                    <td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);">{{ ac.name }}</td>
+                    <td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);text-align:right;color:#a23b2e;">{{ ac.debtLabel }}</td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+          <div style="flex:1;">
+            <sc-if value="{{ acSelected }}" hint-placeholder-val="{{ false }}">
+              <div style="font-family:'Barlow Condensed';font-size:18px;font-weight:600;">{{ acName }}</div>
+              <div style="font-size:13px;color:rgba(29,31,32,0.55);margin-bottom:14px;">{{ acPhone }}</div>
+              <div style="display:flex;justify-content:space-between;align-items:baseline;padding:12px 0;border-top:1px solid rgba(29,31,32,0.16);border-bottom:1px solid rgba(29,31,32,0.16);margin-bottom:14px;">
+                <span style="font-family:'Barlow Condensed';font-weight:600;">Joriy qarz</span><span style="font-family:'Barlow Condensed';font-size:22px;font-weight:700;color:#a23b2e;">{{ acDebtLabel }}</span>
+              </div>
+              <div style="font-family:'Barlow Condensed';font-weight:600;font-size:14px;margin-bottom:8px;">To'lov tarixi</div>
+              <sc-for list="{{ acHistory }}" as="ah" hint-placeholder-count="3">
+                <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(29,31,32,0.08);font-size:13px;"><span>{{ ah.label }}</span><span style="font-weight:600;color:{{ ah.color }};">{{ ah.amountLabel }}</span></div>
+              </sc-for>
+            </sc-if>
+            <sc-if value="{{ acNoneSelected }}" hint-placeholder-val="{{ true }}">
+              <div style="color:rgba(29,31,32,0.45);font-size:14px;">Mijozni tanlang</div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- INVENTORY -->
+      <sc-if value="{{ isInventory }}" hint-placeholder-val="{{ false }}">
+        <div style="font-family:'Barlow Condensed';font-size:24px;font-weight:600;margin-bottom:16px;">Inventarizatsiya</div>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead><tr>
+            <th style="text-align:left;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Tovar</th>
+            <th style="text-align:right;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Kutilgan</th>
+            <th style="text-align:right;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Sanalgan</th>
+            <th style="text-align:right;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Farq</th>
+          </tr></thead>
+          <tbody>
+            <sc-for list="{{ invRows }}" as="iv" hint-placeholder-count="6">
+              <tr>
+                <td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);">{{ iv.name }}</td>
+                <td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);text-align:right;color:rgba(29,31,32,0.6);">{{ iv.expected }}</td>
+                <td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);text-align:right;">
+                  <input type="number" value="{{ iv.countedValue }}" oninput="{{ iv.onCountedChange }}" style="width:80px;height:30px;text-align:right;padding:0 6px;background:#e9e9ea;border:1px solid rgba(29,31,32,0.2);color:#1d1f20;" />
+                </td>
+                <td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);text-align:right;color:{{ iv.diffColor }};">{{ iv.diffLabel }}</td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:16px;padding-top:14px;border-top:1px solid rgba(29,31,32,0.16);">
+          <span style="font-family:'Barlow Condensed';font-size:15px;font-weight:600;">Foydaga ta'siri</span>
+          <span style="font-family:'Barlow Condensed';font-size:22px;font-weight:700;color:{{ invImpactColor }};">{{ invImpactLabel }}</span>
+        </div>
+        <button onclick="{{ h.confirmInventory }}" style="margin-top:16px;padding:12px 20px;background:#5980a6;border:1px solid #5980a6;color:#f2f2f3;font-family:'Barlow Condensed';font-size:14px;font-weight:600;cursor:pointer;">Tasdiqlash</button>
+      </sc-if>
+
+      <!-- REPORTS -->
+      <sc-if value="{{ isReports }}" hint-placeholder-val="{{ false }}">
+        <div style="font-family:'Barlow Condensed';font-size:24px;font-weight:600;margin-bottom:16px;">Hisobotlar</div>
+        <div style="display:inline-flex;border:1px solid rgba(29,31,32,0.2);margin-bottom:18px;flex-wrap:wrap;">
+          <sc-for list="{{ reportTabs }}" as="rt" hint-placeholder-count="4">
+            <button onclick="{{ rt.onClick }}" style="padding:9px 14px;font-size:12px;font-family:'Barlow Condensed';cursor:pointer;border:none;background:{{ rt.bg }};color:{{ rt.color }};">{{ rt.label }}</button>
+          </sc-for>
+        </div>
+
+        <sc-if value="{{ isReportStock }}" hint-placeholder-val="{{ true }}">
+          <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead><tr><th style="text-align:left;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Tovar</th><th style="text-align:right;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Miqdor</th><th style="text-align:right;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Tannarx summasi</th><th style="text-align:right;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Sotuv narxi summasi</th></tr></thead>
+            <tbody>
+              <sc-for list="{{ reportStockRows }}" as="rr" hint-placeholder-count="6">
+                <tr><td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);">{{ rr.name }}</td><td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);text-align:right;">{{ rr.qty }}</td><td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);text-align:right;">{{ rr.costLabel }}</td><td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);text-align:right;">{{ rr.priceLabel }}</td></tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </sc-if>
+
+        <sc-if value="{{ isReportPnl }}" hint-placeholder-val="{{ false }}">
+          <div style="display:inline-flex;border:1px solid rgba(29,31,32,0.2);margin-bottom:12px;">
+            <sc-for list="{{ pnlDims }}" as="pd2" hint-placeholder-count="3">
+              <button onclick="{{ pd2.onClick }}" style="padding:8px 14px;font-size:12px;font-family:'Barlow Condensed';cursor:pointer;border:none;background:{{ pd2.bg }};color:{{ pd2.color }};">{{ pd2.label }}</button>
+            </sc-for>
+          </div>
+          <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead><tr><th style="text-align:left;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">{{ pnlDimLabel }}</th><th style="text-align:right;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Tushum</th><th style="text-align:right;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Tannarx</th><th style="text-align:right;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Foyda</th></tr></thead>
+            <tbody>
+              <sc-for list="{{ pnlRows }}" as="pr" hint-placeholder-count="5">
+                <tr><td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);">{{ pr.label }}</td><td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);text-align:right;">{{ pr.revLabel }}</td><td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);text-align:right;">{{ pr.costLabel }}</td><td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);text-align:right;color:#2c6b3f;font-weight:500;">{{ pr.profitLabel }}</td></tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </sc-if>
+
+        <sc-if value="{{ isReportShifts }}" hint-placeholder-val="{{ false }}">
+          <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead><tr><th style="text-align:left;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Sana</th><th style="text-align:left;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Kassir</th><th style="text-align:right;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Tushum</th><th style="text-align:right;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Naqd farqi</th></tr></thead>
+            <tbody>
+              <sc-for list="{{ recentShifts }}" as="sh2" hint-placeholder-count="4">
+                <tr><td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);">{{ sh2.date }}</td><td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);">{{ sh2.cashier }}</td><td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);text-align:right;">{{ sh2.totalLabel }}</td><td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);text-align:right;color:{{ sh2.diffColor }};">{{ sh2.diffLabel }}</td></tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </sc-if>
+
+        <sc-if value="{{ isReportDead }}" hint-placeholder-val="{{ false }}">
+          <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead><tr><th style="text-align:left;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Tovar</th><th style="text-align:right;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Qoldiq</th><th style="text-align:left;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Oxirgi sotuv</th></tr></thead>
+            <tbody>
+              <sc-for list="{{ deadStockRows }}" as="dz" hint-placeholder-count="4">
+                <tr><td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);">{{ dz.name }}</td><td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);text-align:right;">{{ dz.stock }}</td><td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);color:#a23b2e;">{{ dz.lastSale }}</td></tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </sc-if>
+      </sc-if>
+
+      <!-- AUDIT LOG -->
+      <sc-if value="{{ isAuditLog }}" hint-placeholder-val="{{ false }}">
+        <div style="font-family:'Barlow Condensed';font-size:24px;font-weight:600;margin-bottom:16px;">Audit log</div>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead><tr>
+            <th style="text-align:left;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Vaqt</th>
+            <th style="text-align:left;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Foydalanuvchi</th>
+            <th style="text-align:left;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Amal</th>
+            <th style="text-align:left;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Tafsilot</th>
+          </tr></thead>
+          <tbody>
+            <sc-for list="{{ auditRows }}" as="au" hint-placeholder-count="6">
+              <tr>
+                <td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);color:rgba(29,31,32,0.6);">{{ au.time }}</td>
+                <td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);">{{ au.user }}</td>
+                <td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);"><span style="font-size:11px;padding:2px 8px;border:1px solid {{ au.tagBorder }};color:{{ au.tagColor }};">{{ au.action }}</span></td>
+                <td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);color:rgba(29,31,32,0.7);">{{ au.detail }}</td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </sc-if>
+
+      <!-- USERS -->
+      <sc-if value="{{ isUsers }}" hint-placeholder-val="{{ false }}">
+        <div style="font-family:'Barlow Condensed';font-size:24px;font-weight:600;margin-bottom:16px;">Foydalanuvchilar</div>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;max-width:640px;">
+          <thead><tr>
+            <th style="text-align:left;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Ism</th>
+            <th style="text-align:left;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Rol</th>
+            <th style="text-align:left;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">PIN</th>
+            <th style="text-align:left;font-size:11px;color:rgba(29,31,32,0.5);padding:8px;border-bottom:1px solid rgba(29,31,32,0.16);">Holat</th>
+          </tr></thead>
+          <tbody>
+            <sc-for list="{{ userRows }}" as="ur" hint-placeholder-count="3">
+              <tr>
+                <td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);">{{ ur.name }}</td>
+                <td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);color:rgba(29,31,32,0.6);">{{ ur.role }}</td>
+                <td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);font-family:ui-monospace,monospace;">{{ ur.pinMasked }}</td>
+                <td style="padding:8px;border-bottom:1px solid rgba(29,31,32,0.08);"><span style="font-size:11px;padding:2px 8px;border:1px solid {{ ur.statusBorder }};color:{{ ur.statusColor }};">{{ ur.status }}</span></td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </sc-if>
+
+      <!-- SETTINGS -->
+      <sc-if value="{{ isSettings }}" hint-placeholder-val="{{ false }}">
+        <div style="font-family:'Barlow Condensed';font-size:24px;font-weight:600;margin-bottom:16px;">Sozlamalar</div>
+        <div style="display:flex;flex-direction:column;gap:20px;max-width:480px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;border:1px solid rgba(29,31,32,0.16);padding:14px 16px;">
+            <div><div style="font-size:14px;font-weight:500;">Manfiy qoldiqqa ruxsat</div><div style="font-size:12px;color:rgba(29,31,32,0.55);">Qoldiq yo'q bo'lsa ham sotuvga ruxsat berish</div></div>
+            <button onclick="{{ h.toggleNegativeStock }}" style="width:44px;height:26px;border-radius:13px;border:1px solid rgba(29,31,32,0.25);background:{{ negStockBg }};position:relative;cursor:pointer;flex:none;"><span style="position:absolute;top:2px;left:{{ negStockDotLeft }};width:20px;height:20px;border-radius:50%;background:#fff;transition:left .15s;"></span></button>
+          </div>
+          <div style="border:1px solid rgba(29,31,32,0.16);padding:14px 16px;">
+            <div style="font-size:14px;font-weight:500;margin-bottom:10px;">Summalarni yaxlitlash</div>
+            <div style="display:flex;gap:14px;flex-wrap:wrap;">
+              <sc-for list="{{ roundingOptions }}" as="ro" hint-placeholder-count="4">
+                <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
+                  <input type="radio" name="rounding" checked="{{ ro.checked }}" onchange="{{ ro.onChange }}" />{{ ro.label }}
+                </label>
+              </sc-for>
+            </div>
+          </div>
+          <div style="border:1px solid rgba(29,31,32,0.16);padding:14px 16px;">
+            <div style="font-size:14px;font-weight:500;">Davrni yopish</div>
+            <div style="font-size:12px;color:rgba(29,31,32,0.55);margin:6px 0 12px;">Oxirgi yopilgan davr: {{ lastPeriodClose }}</div>
+            <button style="padding:9px 16px;background:transparent;border:1px solid rgba(29,31,32,0.3);font-family:'Barlow Condensed';font-size:13px;cursor:pointer;">Davrni yopish</button>
+          </div>
+        </div>
+      </sc-if>
+
+    </div>
+  </div>
+  </sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  categories = ["Bo'yoq","Sement va qurilish","Elektr tovarlari","Santexnika","Asboblar"];
+  products = [
+    {id:1,name:"Portlandcement M400 50kg",category:"Sement va qurilish",stock:340,price:68000,cost:52000},
+    {id:2,name:"Gips shpaklovka 20kg",category:"Sement va qurilish",stock:12,price:92000,cost:71000},
+    {id:3,name:"Emal bo'yoq Tex 3kg oq",category:"Bo'yoq",stock:54,price:145000,cost:104000},
+    {id:4,name:"Emal bo'yoq Tex 3kg moviy",category:"Bo'yoq",stock:0,price:145000,cost:104000},
+    {id:5,name:"Mix shpatlovka aralashmasi 25kg",category:"Sement va qurilish",stock:210,price:78000,cost:59000},
+    {id:6,name:"Elektr kabel VVG 2x1.5",category:"Elektr tovarlari",stock:1500,price:3200,cost:2350},
+    {id:7,name:"Rozetka ramkali oq",category:"Elektr tovarlari",stock:88,price:18000,cost:12500},
+    {id:8,name:"Chala lampa LED 12W",category:"Elektr tovarlari",stock:5,price:14000,cost:9200},
+    {id:9,name:"Santexnika truba PPR 20mm",category:"Santexnika",stock:320,price:6500,cost:4600},
+    {id:10,name:"Kran-buksa sharoviy 1/2",category:"Santexnika",stock:60,price:42000,cost:31000},
+    {id:11,name:"Bolg'a 500g",category:"Asboblar",stock:24,price:38000,cost:27000},
+    {id:12,name:"Shpatel metall 100mm",category:"Asboblar",stock:40,price:15000,cost:10000},
+    {id:13,name:"Qo'lqop ishchi (juft)",category:"Asboblar",stock:200,price:8000,cost:5200},
+    {id:14,name:"Gvozd 70mm",category:"Sement va qurilish",stock:2380,price:340,cost:230,
+      units:[{label:"dona",factor:1,price:340},{label:"pachka (50 dona)",factor:50,price:16500},{label:"karobka (10 pachka · 500 dona)",factor:500,price:160000}],
+      barcodes:["4780012340017","4780012340024"],
+      history:[
+        {date:"11.09.2026",type:"Kirim",qty:1000,after:2380},
+        {date:"09.09.2026",type:"Sotuv",qty:-180,after:1380},
+        {date:"05.09.2026",type:"Inventarizatsiya",qty:-40,after:1560},
+        {date:"28.08.2026",type:"Sotuv",qty:-220,after:1600}
+      ]}
+  ];
+
+  suppliers = [
+    {name:"Tashkent Qurilish Baza",contact:"Sherzod Aliyev",phone:"+998 90 111 22 33",lastDate:"10.09.2026",total:24500000},
+    {name:"Andijon Metall Prokat",contact:"Ilhom Yusupov",phone:"+998 91 222 33 44",lastDate:"05.09.2026",total:18200000},
+    {name:"Fargona Elektr Ta'minot",contact:"Gulnora Rashidova",phone:"+998 93 444 55 66",lastDate:"29.08.2026",total:9600000},
+    {name:"Samarqand Bo'yoq Zavodi",contact:"Jamshid Nazarov",phone:"+998 97 666 77 88",lastDate:"22.08.2026",total:14300000}
+  ];
+  incomingDocs = [
+    {date:"10.09.2026",supplier:"Tashkent Qurilish Baza",status:"confirmed",
+     items:[{name:"Portlandcement M400 50kg",unit:"dona",qty:200,price:52000},{name:"Mix shpatlovka aralashmasi 25kg",unit:"dona",qty:100,price:59000}]},
+    {date:"05.09.2026",supplier:"Andijon Metall Prokat",status:"confirmed",
+     items:[{name:"Gvozd 70mm",unit:"karobka (500 dona)",qty:6,price:150000},{name:"Bolg'a 500g",unit:"dona",qty:20,price:27000}]},
+    {date:"12.09.2026",supplier:"Fargona Elektr Ta'minot",status:"draft",
+     items:[{name:"Elektr kabel VVG 2x1.5",unit:"pachka (100m)",qty:15,price:220000},{name:"Rozetka ramkali oq",unit:"dona",qty:80,price:12500}]}
+  ];
+  adminCustomersData = [
+    {id:1,name:"Aziz Nazarov",phone:"+998 90 123 45 67",debt:245000},
+    {id:2,name:"Malika Tosheva",phone:"+998 93 555 12 34",debt:0},
+    {id:3,name:"Rustam Qodirov",phone:"+998 97 777 88 99",debt:1240000}
+  ];
+  auditRows = [
+    {time:"12.09 14:12",user:"Dilnoza Yusupova",action:"Chegirma",detail:"Sotuv #4821'ga 10% umumiy chegirma qo'llandi"},
+    {time:"12.09 13:50",user:"Bahodir Karimov",action:"O'chirish",detail:"Savatdan 'Chala lampa LED 12W' qatori o'chirildi"},
+    {time:"11.09 18:04",user:"Egasi",action:"Narx o'zgartirdi",detail:"'Gvozd 70mm' sotuv narxi 320 → 340 so'm"},
+    {time:"11.09 09:30",user:"Egasi",action:"Kirim tasdiqlandi",detail:"Andijon Metall Prokat'dan kirim hujjati tasdiqlandi"},
+    {time:"10.09 20:15",user:"Dilnoza Yusupova",action:"Qaytarish",detail:"Sotuv #4790'dan 1 dona qaytarildi"},
+    {time:"09.09 11:02",user:"Egasi",action:"Foydalanuvchi",detail:"Bahodir Karimov uchun yangi PIN o'rnatildi"}
+  ];
+  userRows0 = [
+    {name:"Egasi (Admin)",role:"Admin",pin:"9012",status:"Faol"},
+    {name:"Dilnoza Yusupova",role:"Kassir",pin:"1234",status:"Faol"},
+    {name:"Bahodir Karimov",role:"Kassir",pin:"5678",status:"Faol"}
+  ];
+  inventoryProducts = [
+    {name:"Gips shpaklovka 20kg",expected:12,cost:71000},
+    {name:"Chala lampa LED 12W",expected:5,cost:9200},
+    {name:"Bolg'a 500g",expected:24,cost:27000},
+    {name:"Rozetka ramkali oq",expected:88,cost:12500},
+    {name:"Qo'lqop ishchi (juft)",expected:200,cost:5200},
+    {name:"Gvozd 70mm",expected:2380,cost:230}
+  ];
+  deadStock = [
+    {name:"Emal bo'yoq Tex 3kg moviy",stock:"0 dona",lastSale:"14.07.2026"},
+    {name:"Kran-buksa sharoviy 1/2",stock:"60 dona",lastSale:"02.08.2026"},
+    {name:"Shpatel metall 100mm",stock:"40 dona",lastSale:"19.08.2026"}
+  ];
+  pnlByPeriod = [
+    {label:"Iyul 2026",rev:32000000,cost:22800000},
+    {label:"Avgust 2026",rev:35400000,cost:25100000},
+    {label:"Sentyabr 2026 (jorida)",rev:14200000,cost:10100000}
+  ];
+  pnlByProduct = [
+    {label:"Portlandcement M400 50kg",rev:6800000,cost:5200000},
+    {label:"Elektr kabel VVG 2x1.5",rev:4200000,cost:3080000},
+    {label:"Gvozd 70mm",rev:2100000,cost:1420000}
+  ];
+  pnlByCategory = [
+    {label:"Sement va qurilish",rev:11200000,cost:8100000},
+    {label:"Elektr tovarlari",rev:6400000,cost:4550000},
+    {label:"Asboblar",rev:2600000,cost:1780000}
+  ];
+
+  state = {
+    role:"admin", screen:"dashboard",
+    pSearch:"", pCategory:"", stockFilter:"all",
+    listState:"ok",
+    detailProductId:null,
+    importState:"idle",
+    incomingDocSelected:null,
+    suppliersState:null,
+    customersState:null, acSelectedId:null,
+    invCounted:{},
+    reportTab:"stock", pnlDim:"period",
+    negativeStockAllowed:false, rounding:"none"
+  };
+
+  formatSom(n){ return Math.round(n).toLocaleString("fr-FR").replace(/,/g," ") + " so'm"; }
+  formatNum(n){ return Math.round(n).toLocaleString("fr-FR").replace(/,/g," "); }
+
+  setRoleAdmin(){ this.setState({role:"admin"}); }
+  setRoleKassir(){ this.setState({role:"kassir"}); }
+  goDashboard(){ this.setState({screen:"dashboard"}); }
+  goProducts(){ this.setState({screen:"products"}); }
+  backToProducts(){ this.setState({screen:"products",detailProductId:null}); }
+  openDetail(id){ this.setState({screen:"productDetail",detailProductId:id}); }
+  onPSearch(e){ this.setState({pSearch:e.target.value}); }
+  onCategoryFilter(e){ this.setState({pCategory:e.target.value}); }
+  setStockFilter(v){ this.setState({stockFilter:v}); }
+  cycleListState(){
+    const order=["ok","loading","empty","error"];
+    const i=order.indexOf(this.state.listState);
+    this.setState({listState:order[(i+1)%order.length]});
+  }
+
+  goExcelImport(){ this.setState({screen:"excelImport",importState:"idle"}); }
+  simulateUpload(){ this.setState({importState:"ready"}); }
+  confirmImport(){ this.setState({importState:"done"}); }
+  resetImport(){ this.setState({importState:"idle"}); }
+
+  goIncomingList(){ this.setState({screen:"incomingList"}); }
+  goIncomingDoc(id){ this.setState({screen:"incomingDoc",incomingDocSelected: (id===undefined? null : id)}); }
+  saveDraft(){}
+  confirmDoc(){ this.setState({screen:"incomingList"}); }
+
+  goSuppliers(){ this.setState({screen:"suppliers"}); }
+  goInventory(){ this.setState({screen:"inventory"}); }
+  goCustomers(){ this.setState({screen:"customers",acSelectedId:null}); }
+  selectAc(id){ this.setState({acSelectedId:id}); }
+  goReports(){ this.setState({screen:"reports"}); }
+  setReportTab(t){ this.setState({reportTab:t}); }
+  setPnlDim(d){ this.setState({pnlDim:d}); }
+  goAuditLog(){ this.setState({screen:"auditLog"}); }
+  goUsers(){ this.setState({screen:"users"}); }
+  goSettings(){ this.setState({screen:"settings"}); }
+  toggleNegativeStock(){ this.setState({negativeStockAllowed:!this.state.negativeStockAllowed}); }
+  setRounding(v){ this.setState({rounding:v}); }
+  setInvCounted(name,val){ const c={...this.state.invCounted}; c[name]=val; this.setState({invCounted:c}); }
+  confirmInventory(){}
+
+  renderVals(){
+    const s=this.state;
+    const filtered=this.products.filter(p=>{
+      if(s.pCategory && p.category!==s.pCategory) return false;
+      if(s.stockFilter==="low" && !(p.stock>0 && p.stock<60)) return false;
+      if(s.stockFilter==="out" && p.stock!==0) return false;
+      if(s.pSearch && !p.name.toLowerCase().includes(s.pSearch.toLowerCase())) return false;
+      return true;
+    });
+    const productRows=filtered.map(p=>{
+      let tagLabel="Yetarli",tagColor="#2c6b3f",tagBorder="#8fbf9e";
+      if(p.stock===0){ tagLabel="Tugagan"; tagColor="#a23b2e"; tagBorder="#c98f80"; }
+      else if(p.stock<60){ tagLabel="Kam qoldi"; tagColor="#7a5a12"; tagBorder="#d1a94a"; }
+      return {
+        name:p.name, category:p.category, stockLabel:this.formatNum(p.stock),
+        priceLabel:this.formatSom(p.price), costLabel:this.formatSom(p.cost),
+        tagLabel,tagColor,tagBorder, onClick:()=>this.openDetail(p.id)
+      };
+    });
+
+    const dp = this.products.find(p=>p.id===s.detailProductId) || this.products.find(p=>p.units);
+    const pd = dp ? {
+      name:dp.name, category:dp.category, stockLabel:this.formatNum(dp.stock)+" dona",
+      costLabel:this.formatSom(dp.cost), priceLabel2:this.formatSom(dp.price),
+      units:(dp.units||[{label:"dona",factor:1,price:dp.price}]).map(u=>({label:u.label,factorLabel: u.factor===1?"asosiy birlik":"= "+u.factor+" dona",priceLabel:this.formatSom(u.price)})),
+      barcodes:dp.barcodes||["—"],
+      history:(dp.history||[]).map(h=>({
+        date:h.date, type:h.type, qtyColor: h.qty<0?"#a23b2e":"#2c6b3f",
+        qtyLabel:(h.qty>0?"+":"")+this.formatNum(h.qty), afterLabel:this.formatNum(h.after),
+        tagBorder: h.type==="Kirim"?"#8fbf9e": h.type==="Sotuv"?"#b5d9fd": h.type==="Qaytarish"?"#d1a94a":"#c9a8c9",
+        tagColor: h.type==="Kirim"?"#2c6b3f": h.type==="Sotuv"?"#416180": h.type==="Qaytarish"?"#7a5a12":"#6b3d6b"
+      }))
+    } : null;
+
+    const stockFilterBg={all:s.stockFilter==="all"?"#5980a6":"transparent",low:s.stockFilter==="low"?"#5980a6":"transparent",out:s.stockFilter==="out"?"#5980a6":"transparent"};
+    const stockFilterColor={all:s.stockFilter==="all"?"#f2f2f3":"#1d1f20",low:s.stockFilter==="low"?"#f2f2f3":"#1d1f20",out:s.stockFilter==="out"?"#f2f2f3":"#1d1f20"};
+
+    const importPreviewRows=[
+      {row:2,name:"Portlandcement M400 50kg",tagLabel:"OK",tagBorder:"#8fbf9e",tagColor:"#2c6b3f"},
+      {row:3,name:"Gips shpaklovka 20kg",tagLabel:"OK",tagBorder:"#8fbf9e",tagColor:"#2c6b3f"},
+      {row:4,name:"— (narx ustuni bo'sh)",tagLabel:"Xato",tagBorder:"#c98f80",tagColor:"#a23b2e"},
+      {row:5,name:"Mix shpatlovka aralashmasi 25kg",tagLabel:"OK",tagBorder:"#8fbf9e",tagColor:"#2c6b3f"},
+      {row:6,name:"— (kategoriya noaniq)",tagLabel:"Xato",tagBorder:"#c98f80",tagColor:"#a23b2e"}
+    ];
+    const importMappings=[
+      {source:"Ustun A",target:"Tovar nomi"},{source:"Ustun B",target:"Kategoriya"},
+      {source:"Ustun C",target:"Birlik"},{source:"Ustun D",target:"Sotuv narxi"},{source:"Ustun E",target:"Tannarx"}
+    ];
+
+    const incomingDocs=this.incomingDocs.map((d,i)=>{
+      const total=d.items.reduce((sum,it)=>sum+it.qty*it.price,0);
+      const confirmedC=d.status==="confirmed";
+      return {date:d.date,supplier:d.supplier,totalLabel:this.formatSom(total),
+        statusLabel: confirmedC?"Tasdiqlangan":"Qoralama",
+        tagBorder: confirmedC?"#8fbf9e":"#d1a94a", tagColor: confirmedC?"#2c6b3f":"#7a5a12",
+        onClick:()=>this.goIncomingDoc(i)};
+    });
+    const activeDocIdx = s.incomingDocSelected==null? 0 : s.incomingDocSelected;
+    const activeDoc = this.incomingDocs[activeDocIdx] || this.incomingDocs[0];
+    const docItems = activeDoc.items.map(it=>({name:it.name,unit:it.unit,qtyLabel:this.formatNum(it.qty),priceLabel:this.formatSom(it.price),sumLabel:this.formatSom(it.qty*it.price)}));
+    const docTotal = activeDoc.items.reduce((sum,it)=>sum+it.qty*it.price,0);
+    const docConfirmed = activeDoc.status==="confirmed";
+
+    const customersState = s.customersState || this.adminCustomersData;
+    const adminCustomers = customersState.map(c=>({id:c.id,name:c.name,debtLabel:this.formatSom(c.debt),rowBg: c.id===s.acSelectedId?"#eef6ff":"transparent",onClick:()=>this.selectAc(c.id)}));
+    const acCust = customersState.find(c=>c.id===s.acSelectedId);
+
+    const invRows = this.inventoryProducts.map(p=>{
+      const countedRaw = s.invCounted[p.name];
+      const counted = countedRaw===undefined? p.expected : parseFloat(countedRaw||"0");
+      const diff = counted-p.expected;
+      return {
+        name:p.name, expected:this.formatNum(p.expected), countedValue: countedRaw===undefined? p.expected : countedRaw,
+        onCountedChange:(e)=>this.setInvCounted(p.name,e.target.value),
+        diffLabel:(diff>0?"+":"")+this.formatNum(diff), diffColor: diff<0?"#a23b2e":diff>0?"#7a5a12":"#2c6b3f",
+        _diff:diff,_cost:p.cost
+      };
+    });
+    const invImpact = invRows.reduce((sum,r)=>sum+r._diff*r._cost,0);
+
+    const reportTabs=[
+      {key:"stock",label:"Qoldiq hisoboti"},{key:"pnl",label:"Foyda-zarar"},{key:"shifts",label:"Smenalar"},{key:"dead",label:"Harakatsiz tovarlar"}
+    ].map(t=>({label:t.label,onClick:()=>this.setReportTab(t.key),bg: s.reportTab===t.key?"#5980a6":"transparent",color: s.reportTab===t.key?"#f2f2f3":"#1d1f20"}));
+    const reportStockRows = this.products.map(p=>({name:p.name,qty:this.formatNum(p.stock),costLabel:this.formatSom(p.stock*p.cost),priceLabel:this.formatSom(p.stock*p.price)}));
+    const pnlDims=[{key:"period",label:"Davr bo'yicha"},{key:"product",label:"Tovar bo'yicha"},{key:"category",label:"Kategoriya bo'yicha"}].map(d=>({label:d.label,onClick:()=>this.setPnlDim(d.key),bg: s.pnlDim===d.key?"#5980a6":"transparent",color: s.pnlDim===d.key?"#f2f2f3":"#1d1f20"}));
+    const pnlSource = s.pnlDim==="period"? this.pnlByPeriod : s.pnlDim==="product"? this.pnlByProduct : this.pnlByCategory;
+    const pnlRows = pnlSource.map(r=>({label:r.label,revLabel:this.formatSom(r.rev),costLabel:this.formatSom(r.cost),profitLabel:this.formatSom(r.rev-r.cost)}));
+    const deadStockRows = this.deadStock.map(d=>({name:d.name,stock:d.stock,lastSale:d.lastSale}));
+
+    const auditRows = this.auditRows.map(a=>{
+      const tagMap={"Chegirma":["#d1a94a","#7a5a12"],"O'chirish":["#c98f80","#a23b2e"],"Narx o'zgartirdi":["#b5d9fd","#416180"],"Kirim tasdiqlandi":["#8fbf9e","#2c6b3f"],"Qaytarish":["#c98f80","#a23b2e"],"Foydalanuvchi":["#c9c9cc","#5d5d60"]};
+      const t=tagMap[a.action]||["#c9c9cc","#5d5d60"];
+      return {time:a.time,user:a.user,action:a.action,detail:a.detail,tagBorder:t[0],tagColor:t[1]};
+    });
+    const userRows = this.userRows0.map(u=>({name:u.name,role:u.role,pinMasked:"••••",status:u.status,statusBorder:"#8fbf9e",statusColor:"#2c6b3f"}));
+    const roundingOptions=[{key:"none",label:"Yaxlitlash yo'q"},{key:"10",label:"10 so'mgacha"},{key:"100",label:"100 so'mgacha"},{key:"1000",label:"1000 so'mgacha"}].map(r=>({label:r.label,checked:s.rounding===r.key,onChange:()=>this.setRounding(r.key)}));
+
+    return {
+      noPermission: s.role==="kassir", hasPermission: s.role==="admin",
+      roleAdminBg: s.role==="admin"?"#5980a6":"transparent", roleAdminColor: s.role==="admin"?"#f2f2f3":"#1d1f20",
+      roleKassirBg: s.role==="kassir"?"#5980a6":"transparent", roleKassirColor: s.role==="kassir"?"#f2f2f3":"#1d1f20",
+      listStateLabel:{ok:"OK",loading:"Yuklanmoqda",empty:"Bo'sh",error:"Xato"}[s.listState],
+
+      isDashboard: s.screen==="dashboard", isProducts: s.screen==="products", isProductDetail: s.screen==="productDetail",
+      isExcelImport: s.screen==="excelImport", isIncomingList: s.screen==="incomingList", isIncomingDoc: s.screen==="incomingDoc",
+      isSuppliers: s.screen==="suppliers", isInventory: s.screen==="inventory", isCustomers: s.screen==="customers",
+      isReports: s.screen==="reports", isAuditLog: s.screen==="auditLog", isUsers: s.screen==="users", isSettings: s.screen==="settings",
+      navBg:{
+        dashboard: s.screen==="dashboard"?"#dfe7ee":"transparent", products: s.screen==="products"||s.screen==="productDetail"?"#dfe7ee":"transparent",
+        excel: s.screen==="excelImport"?"#dfe7ee":"transparent", incoming: s.screen==="incomingList"||s.screen==="incomingDoc"?"#dfe7ee":"transparent",
+        suppliers: s.screen==="suppliers"?"#dfe7ee":"transparent", inventory: s.screen==="inventory"?"#dfe7ee":"transparent",
+        customers: s.screen==="customers"?"#dfe7ee":"transparent", reports: s.screen==="reports"?"#dfe7ee":"transparent",
+        audit: s.screen==="auditLog"?"#dfe7ee":"transparent", users: s.screen==="users"?"#dfe7ee":"transparent", settings: s.screen==="settings"?"#dfe7ee":"transparent"
+      },
+      navBorder:{
+        dashboard: s.screen==="dashboard"?"#5980a6":"transparent", products: s.screen==="products"||s.screen==="productDetail"?"#5980a6":"transparent",
+        excel: s.screen==="excelImport"?"#5980a6":"transparent", incoming: s.screen==="incomingList"||s.screen==="incomingDoc"?"#5980a6":"transparent",
+        suppliers: s.screen==="suppliers"?"#5980a6":"transparent", inventory: s.screen==="inventory"?"#5980a6":"transparent",
+        customers: s.screen==="customers"?"#5980a6":"transparent", reports: s.screen==="reports"?"#5980a6":"transparent",
+        audit: s.screen==="auditLog"?"#5980a6":"transparent", users: s.screen==="users"?"#5980a6":"transparent", settings: s.screen==="settings"?"#5980a6":"transparent"
+      },
+
+      todayLabel:"12 sentyabr 2026",
+      kpis:[
+        {label:"Bugungi tushum",value:this.formatSom(3840000),sub:"18 ta sotuv",color:"#1d1f20"},
+        {label:"Bugungi foyda",value:this.formatSom(1120000),sub:"29% margin",color:"#2c6b3f"},
+        {label:"Naqd farqi",value:"−12 000 so'm",sub:"1-smena, Dilnoza",color:"#a23b2e"},
+        {label:"Ochiq smenalar",value:"1",sub:"Bahodir Karimov",color:"#416180"}
+      ],
+      topProducts:[
+        {name:"Portlandcement M400 50kg",qtyLabel:"42 dona"},
+        {name:"Elektr kabel VVG 2x1.5",qtyLabel:"310 metr"},
+        {name:"Qo'lqop ishchi (juft)",qtyLabel:"38 dona"},
+        {name:"Mix shpatlovka aralashmasi 25kg",qtyLabel:"21 dona"},
+        {name:"Gvozd 70mm",qtyLabel:"180 dona"}
+      ],
+      lowStockList:[
+        {name:"Chala lampa LED 12W",stockLabel:"5 dona"},
+        {name:"Gips shpaklovka 20kg",stockLabel:"12 dona"},
+        {name:"Emal bo'yoq Tex 3kg moviy",stockLabel:"0 dona"},
+        {name:"Bolg'a 500g",stockLabel:"24 dona"},
+        {name:"Rozetka ramkali oq",stockLabel:"88 dona"}
+      ],
+      recentShifts:[
+        {date:"12.09 · 06:00–14:00",cashier:"Dilnoza Yusupova",totalLabel:this.formatSom(2140000),diffLabel:"−12 000",diffColor:"#a23b2e"},
+        {date:"11.09 · 14:00–22:00",cashier:"Bahodir Karimov",totalLabel:this.formatSom(1980000),diffLabel:"0",diffColor:"#2c6b3f"},
+        {date:"11.09 · 06:00–14:00",cashier:"Dilnoza Yusupova",totalLabel:this.formatSom(2450000),diffLabel:"+3 000",diffColor:"#2c6b3f"},
+        {date:"10.09 · 14:00–22:00",cashier:"Bahodir Karimov",totalLabel:this.formatSom(1760000),diffLabel:"−5 000",diffColor:"#a23b2e"}
+      ],
+
+      pSearch:s.pSearch, categoryOptions:this.categories.map(c=>({value:c})),
+      stockFilterBg, stockFilterColor,
+      listLoading: s.listState==="loading", listErr: s.listState==="error",
+      listEmpty: s.listState==="empty" || (s.listState==="ok" && productRows.length===0),
+      listOk: s.listState==="ok" && productRows.length>0,
+      productRows, productRowCount: productRows.length,
+
+      pd,
+
+      importIdle: s.importState==="idle", importReady: s.importState==="ready", importDone: s.importState==="done",
+      importPreviewRows, importMappings,
+
+      incomingDocs, docStatusLabel: docConfirmed?"Tasdiqlangan":"Qoralama",
+      docStatusBorder: docConfirmed?"#8fbf9e":"#d1a94a", docStatusColor: docConfirmed?"#2c6b3f":"#7a5a12",
+      docSupplier: activeDoc.supplier, docItems, docTotalLabel: this.formatSom(docTotal),
+
+      suppliers: this.suppliers,
+
+      adminCustomers, acSelected: !!acCust, acNoneSelected: !acCust,
+      acName: acCust? acCust.name:"", acPhone: acCust? acCust.phone:"", acDebtLabel: acCust? this.formatSom(acCust.debt):"",
+      acHistory: acCust? [
+        {label:"Nasiya berildi · 13.09",amountLabel:"+"+this.formatSom(Math.round(acCust.debt*0.6||50000)),color:"#a23b2e"},
+        {label:"To'lov qabul qilindi · 05.09",amountLabel:"-"+this.formatSom(Math.round((acCust.debt||100000)*0.3)),color:"#2c6b3f"}
+      ] : [],
+
+      invRows, invImpactLabel: this.formatSom(Math.abs(invImpact)) , invImpactColor: invImpact<0?"#a23b2e":invImpact>0?"#7a5a12":"#2c6b3f",
+
+      reportTabs, isReportStock: s.reportTab==="stock", isReportPnl: s.reportTab==="pnl", isReportShifts: s.reportTab==="shifts", isReportDead: s.reportTab==="dead",
+      reportStockRows, pnlDims, pnlDimLabel: s.pnlDim==="period"?"Davr":s.pnlDim==="product"?"Tovar":"Kategoriya", pnlRows, deadStockRows,
+      recentShifts:[
+        {date:"12.09 · 06:00–14:00",cashier:"Dilnoza Yusupova",totalLabel:this.formatSom(2140000),diffLabel:"−12 000",diffColor:"#a23b2e"},
+        {date:"11.09 · 14:00–22:00",cashier:"Bahodir Karimov",totalLabel:this.formatSom(1980000),diffLabel:"0",diffColor:"#2c6b3f"},
+        {date:"11.09 · 06:00–14:00",cashier:"Dilnoza Yusupova",totalLabel:this.formatSom(2450000),diffLabel:"+3 000",diffColor:"#2c6b3f"},
+        {date:"10.09 · 14:00–22:00",cashier:"Bahodir Karimov",totalLabel:this.formatSom(1760000),diffLabel:"−5 000",diffColor:"#a23b2e"}
+      ],
+
+      auditRows, userRows,
+
+      negStockBg: s.negativeStockAllowed?"#5980a6":"#d4d4d7", negStockDotLeft: s.negativeStockAllowed?"22px":"2px",
+      roundingOptions, lastPeriodClose:"31.08.2026",
+
+      h:{
+        setRoleAdmin:()=>this.setRoleAdmin(), setRoleKassir:()=>this.setRoleKassir(),
+        goDashboard:()=>this.goDashboard(), goProducts:()=>this.goProducts(), backToProducts:()=>this.backToProducts(),
+        onPSearch:(e)=>this.onPSearch(e), onCategoryFilter:(e)=>this.onCategoryFilter(e),
+        setStockFilter_all:()=>this.setStockFilter("all"), setStockFilter_low:()=>this.setStockFilter("low"), setStockFilter_out:()=>this.setStockFilter("out"),
+        cycleListState:()=>this.cycleListState(),
+        goExcelImport:()=>this.goExcelImport(), simulateUpload:()=>this.simulateUpload(), confirmImport:()=>this.confirmImport(), resetImport:()=>this.resetImport(),
+        goIncomingList:()=>this.goIncomingList(), goIncomingDoc:()=>this.goIncomingDoc(), saveDraft:()=>this.saveDraft(), confirmDoc:()=>this.confirmDoc(),
+        goSuppliers:()=>this.goSuppliers(), goInventory:()=>this.goInventory(), confirmInventory:()=>this.confirmInventory(),
+        goCustomers:()=>this.goCustomers(), goReports:()=>this.goReports(),
+        goAuditLog:()=>this.goAuditLog(), goUsers:()=>this.goUsers(), goSettings:()=>this.goSettings(),
+        toggleNegativeStock:()=>this.toggleNegativeStock()
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>
