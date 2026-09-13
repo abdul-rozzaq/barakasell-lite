@@ -1,4 +1,4 @@
-const API_URL: string = (import.meta.env.VITE_API_URL as string | undefined) ?? 'https://baraka-api.edvo.uz/api';
+const API_URL: string = (import.meta.env.VITE_API_URL as string | undefined) ?? 'https://baraka-api.solara.uz/api';
 
 const TOKEN_KEY = 'barakasell_pos_token';
 

@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "https://baraka-api.edvo.uz/api";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "https://baraka-api.solara.uz/api";
 
 export class ApiError extends Error {
   constructor(
