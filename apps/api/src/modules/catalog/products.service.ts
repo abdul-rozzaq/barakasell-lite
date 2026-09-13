@@ -38,7 +38,12 @@ export class ProductsService {
     const take = Math.min(params.take ?? 50, 200);
     const where: Prisma.ProductWhereInput = {
       isActive: true,
-      name: params.q ? { contains: params.q, mode: 'insensitive' } : undefined,
+      OR: params.q
+        ? [
+            { name: { contains: params.q, mode: 'insensitive' } },
+            { sku: { contains: params.q, mode: 'insensitive' } },
+          ]
+        : undefined,
       categoryId: params.categoryId,
       stock:
         params.stockFilter === 'out'
