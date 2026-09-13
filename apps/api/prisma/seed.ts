@@ -6,55 +6,40 @@ import { PrismaClient } from "../src/generated/prisma/client.js";
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
-const CATEGORIES = [
-  "Bo'yoq",
-  "Sement va qurilish",
-  "Elektr tovarlari",
-  "Santexnika",
-  "Asboblar",
-];
+// Deliberately CLI-args only, never .env — a seeded admin credential must
+// be typed by whoever runs this, not sit as a default anywhere in the repo
+// or environment config.
+function readArg(name: string): string | undefined {
+  const prefix = `--${name}=`;
+  return process.argv.find((a) => a.startsWith(prefix))?.slice(prefix.length);
+}
+
+const adminLogin = readArg("admin-login");
+const adminPassword = readArg("admin-password");
+
+if (!adminLogin || !adminPassword) {
+  console.error(
+    "Xato: --admin-login va --admin-password argumentlari majburiy.\n" +
+      "Misol: tsx prisma/seed.ts --admin-login=admin --admin-password=StrongPass123\n" +
+      "(`prisma db seed` orqali: prisma db seed -- --admin-login=admin --admin-password=StrongPass123)",
+  );
+  process.exit(1);
+}
 
 async function main() {
-  await prisma.settings.upsert({
-    where: { id: 1 },
-    create: { id: 1 },
-    update: {},
-  });
-
-  for (const name of CATEGORIES) {
-    await prisma.category.upsert({
-      where: { name },
-      create: { name },
-      update: {},
-    });
-  }
-
-  const adminPasswordHash = await argon2.hash("admin123");
+  const adminPasswordHash = await argon2.hash(adminPassword!);
   await prisma.user.upsert({
-    where: { login: "admin" },
+    where: { login: adminLogin },
     create: {
       name: "Egasi",
-      login: "admin",
+      login: adminLogin,
       passwordHash: adminPasswordHash,
       role: "ADMIN",
     },
-    update: {},
+    // Re-running with a new --admin-password resets it — also doubles as
+    // a password-reset path if the admin forgets it.
+    update: { passwordHash: adminPasswordHash },
   });
-
-  const cashierPinHash = await argon2.hash("1234");
-  const cashierName = "Dilnoza Yusupova";
-  const existingCashier = await prisma.user.findFirst({
-    where: { name: cashierName, role: "CASHIER" },
-  });
-  if (!existingCashier) {
-    await prisma.user.create({
-      data: {
-        name: cashierName,
-        pinHash: cashierPinHash,
-        role: "CASHIER",
-      },
-    });
-  }
 
   console.log("Seed complete.");
 }

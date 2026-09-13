@@ -65,7 +65,18 @@ Migratsiyalar: `20260912130213_init`, `20260912130300_code_sequences`
 (`sale_code_seq`/`receipt_code_seq`/`return_code_seq`/`count_code_seq`),
 `20260912161412_add_sales_indexes` (`Sale.status+soldAt`,
 `SaleReturn.shiftId`, `SaleReturnLine.saleLineId`,
-`CustomerDebtEntry.refType+refId`/`.occurredAt`).
+`CustomerDebtEntry.refType+refId`/`.occurredAt`),
+`20260912234244_add_supplier_contact_person`.
+
+**Seed** (`apps/api/prisma/seed.ts`): kategoriyalar + birinchi ADMIN.
+Admin login/parol **hardcode ham, `.env`dan ham EMAS** — faqat CLI
+argument: `tsx prisma/seed.ts --admin-login=admin --admin-password=...`
+(`prisma db seed` orqali: `prisma db seed -- --admin-login=... --admin-
+password=...`). Argument berilmasa aniq xato bilan `exit 1`. Qayta ishga
+tushirilsa (login bir xil) parolni **yangilaydi** — shu bilan birga
+parolni unutib qo'yilganda tiklash vositasi ham bo'ladi. Demo kassir
+(PIN `1234`, e2e testlar shunga tayanadi) o'zgarishsiz qoldi — bu ishlab
+chiqarish credential'i emas, test fixture'i.
 
 ---
 
