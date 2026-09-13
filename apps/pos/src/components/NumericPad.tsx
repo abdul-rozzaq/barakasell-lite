@@ -1,7 +1,15 @@
 import { useState } from 'react';
 import { Modal } from './Modal';
+import { formatSom } from '../lib/format';
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '⌫'];
+
+function groupDigits(raw: string): string {
+  if (!raw) return '0';
+  const [intPart, decPart] = raw.split('.');
+  const grouped = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  return decPart !== undefined ? `${grouped}.${decPart}` : grouped;
+}
 
 interface NumericKeypadProps {
   value: string;
@@ -44,6 +52,8 @@ interface NumericPadModalProps {
   initialValue?: number;
   allowDecimal?: boolean;
   confirmLabel?: string;
+  fullAmount?: number;
+  fullAmountLabel?: string;
   onConfirm: (value: number) => void;
   onCancel: () => void;
 }
@@ -56,6 +66,8 @@ export function NumericPadModal({
   initialValue,
   allowDecimal = false,
   confirmLabel = 'Tasdiqlash',
+  fullAmount,
+  fullAmountLabel = 'Barchasi',
   onConfirm,
   onCancel,
 }: NumericPadModalProps) {
@@ -64,7 +76,16 @@ export function NumericPadModal({
   return (
     <Modal onClose={onCancel}>
       <div className="font-condensed text-lg font-semibold mb-3">{title}</div>
-      <div className="text-right text-3xl font-condensed font-bold mb-4 h-10 truncate">{value || '0'}</div>
+      <div className="text-right text-3xl font-condensed font-bold mb-4 h-10 truncate">{groupDigits(value)}</div>
+      {fullAmount !== undefined && fullAmount > 0 && (
+        <button
+          type="button"
+          onClick={() => setValue(String(fullAmount))}
+          className="w-full h-11 mb-2 border border-accent text-accent font-condensed font-semibold text-sm"
+        >
+          {fullAmountLabel} ({formatSom(fullAmount)})
+        </button>
+      )}
       <NumericKeypad value={value} onChange={setValue} allowDecimal={allowDecimal} />
       <div className="flex gap-2 mt-4">
         <button type="button" onClick={onCancel} className="flex-1 h-11 border border-divider text-sm">

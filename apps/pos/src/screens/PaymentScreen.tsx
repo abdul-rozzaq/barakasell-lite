@@ -166,6 +166,7 @@ export function PaymentScreen() {
         <NumericPadModal
           title={CASH_TENDERS.find((t) => t.type === editingTender)?.label ?? ''}
           initialValue={amounts[editingTender]}
+          fullAmount={amounts[editingTender] + remaining}
           allowDecimal={false}
           onConfirm={(value) => {
             setAmounts((prev) => ({ ...prev, [editingTender]: value }));

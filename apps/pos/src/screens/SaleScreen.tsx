@@ -33,7 +33,17 @@ export function SaleScreen() {
       params.set('take', '60');
       api
         .get<{ items: Product[] }>(`/products?${params.toString()}`)
-        .then((res) => setProducts(res.items))
+        .then((res) => {
+          setProducts(res.items);
+          const trimmed = query.trim();
+          const skuMatch = trimmed
+            ? res.items.find((p) => p.sku.toLowerCase() === trimmed.toLowerCase())
+            : undefined;
+          if (skuMatch) {
+            handleTileClick(skuMatch);
+            setQuery('');
+          }
+        })
         .catch(() => setProducts([]));
 
       const trimmed = query.trim();
@@ -53,6 +63,31 @@ export function SaleScreen() {
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, categoryId]);
+
+  function handleSearchEnter() {
+    const trimmed = query.trim();
+    if (!trimmed) return;
+    const skuMatch = products.find((p) => p.sku.toLowerCase() === trimmed.toLowerCase());
+    if (skuMatch) {
+      handleTileClick(skuMatch);
+      setQuery('');
+      return;
+    }
+    const params = new URLSearchParams();
+    params.set('q', trimmed);
+    params.set('take', '60');
+    api
+      .get<{ items: Product[] }>(`/products?${params.toString()}`)
+      .then((res) => {
+        setProducts(res.items);
+        const match = res.items.find((p) => p.sku.toLowerCase() === trimmed.toLowerCase());
+        if (match) {
+          handleTileClick(match);
+          setQuery('');
+        }
+      })
+      .catch(() => {});
+  }
 
   const subtotal = useMemo(
     () => state.cart.reduce((acc, l) => acc + l.qtyInUnit * l.unitPrice, 0),
@@ -108,6 +143,9 @@ export function SaleScreen() {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleSearchEnter();
+            }}
             placeholder="Tovar nomi yoki shtrix-kod..."
             className="h-12 px-3 border border-divider bg-white"
           />
