@@ -3,7 +3,7 @@
 import { useEffect, useState, use as usePromise, useCallback } from "react";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
-import { formatSom, formatQty } from "@/lib/format";
+import { formatSom, formatQty, formatMoneyInput, parseMoney } from "@/lib/format";
 
 interface ProductUnit {
   id: string;
@@ -453,7 +453,7 @@ function AddUnitModal({
       await api.post(`/products/${productId}/units`, {
         label,
         factor: Number(factor),
-        price: Number(price),
+        price: parseMoney(price),
       });
       onAdded();
     } catch (err) {
@@ -493,11 +493,12 @@ function AddUnitModal({
 
         <label className="block text-sm mb-1 text-text/70">Narxi (so&apos;m)</label>
         <input
-          type="number"
+          type="text"
+          inputMode="numeric"
           value={price}
-          onChange={(e) => setPrice(e.target.value)}
+          onChange={(e) => setPrice(formatMoneyInput(e.target.value))}
+          placeholder="0"
           required
-          min={0}
           className="w-full h-10 px-3 border border-divider mb-4 outline-none focus:border-accent"
         />
 
@@ -567,7 +568,7 @@ function EditUnitPriceModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const [price, setPrice] = useState(unit.price);
+  const [price, setPrice] = useState(formatMoneyInput(unit.price));
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -576,7 +577,7 @@ function EditUnitPriceModal({
     setError(null);
     setSubmitting(true);
     try {
-      await api.patch(`/product-units/${unit.id}`, { price: Number(price) });
+      await api.patch(`/product-units/${unit.id}`, { price: parseMoney(price) });
       onSaved();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Xatolik yuz berdi");
@@ -592,11 +593,12 @@ function EditUnitPriceModal({
 
         <label className="block text-sm mb-1 text-text/70">Narxi (so&apos;m)</label>
         <input
-          type="number"
+          type="text"
+          inputMode="numeric"
           value={price}
-          onChange={(e) => setPrice(e.target.value)}
+          onChange={(e) => setPrice(formatMoneyInput(e.target.value))}
+          placeholder="0"
           required
-          min={0}
           autoFocus
           className="w-full h-10 px-3 border border-divider mb-4 outline-none focus:border-accent"
         />

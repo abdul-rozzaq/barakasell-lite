@@ -4,7 +4,7 @@ import { useEffect, useState, use as usePromise, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
-import { formatSom, formatQty } from "@/lib/format";
+import { formatSom, formatQty, formatMoneyInput, parseMoney } from "@/lib/format";
 
 interface Supplier {
   id: string;
@@ -77,7 +77,7 @@ export default function ReceiptDocPage({ params }: { params: Promise<{ id: strin
           productName: prod.items.find((p) => p.id === l.productId)?.name ?? l.productId,
           unitLabel: l.unitLabel,
           qtyInUnit: l.qtyInUnit,
-          unitCostPack: l.unitCostPack,
+          unitCostPack: formatMoneyInput(l.unitCostPack),
         })),
       );
     }
@@ -126,7 +126,7 @@ export default function ReceiptDocPage({ params }: { params: Promise<{ id: strin
           productId: l.productId,
           unitLabel: l.unitLabel,
           qtyInUnit: Number(l.qtyInUnit),
-          unitCostPack: Number(l.unitCostPack),
+          unitCostPack: parseMoney(l.unitCostPack),
         })),
       };
       if (isNew) {
@@ -156,7 +156,7 @@ export default function ReceiptDocPage({ params }: { params: Promise<{ id: strin
     }
   }
 
-  const total = lines.reduce((acc, l) => acc + Number(l.qtyInUnit || 0) * Number(l.unitCostPack || 0), 0);
+  const total = lines.reduce((acc, l) => acc + Number(l.qtyInUnit || 0) * parseMoney(l.unitCostPack || 0), 0);
   const isDraft = isNew || receipt?.status === "DRAFT";
   const isPosted = receipt?.status === "POSTED";
 
@@ -275,17 +275,18 @@ export default function ReceiptDocPage({ params }: { params: Promise<{ id: strin
               <td className="px-3 py-2">
                 {isDraft ? (
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     value={line.unitCostPack}
-                    onChange={(e) => updateLine(i, { unitCostPack: e.target.value })}
+                    onChange={(e) => updateLine(i, { unitCostPack: formatMoneyInput(e.target.value) })}
+                    placeholder="0"
                     className="h-9 px-2 border border-divider w-28"
-                    min={0}
                   />
                 ) : (
                   formatSom(line.unitCostPack)
                 )}
               </td>
-              <td className="px-3 py-2">{formatSom(Number(line.qtyInUnit || 0) * Number(line.unitCostPack || 0))}</td>
+              <td className="px-3 py-2">{formatSom(Number(line.qtyInUnit || 0) * parseMoney(line.unitCostPack || 0))}</td>
               {isDraft && (
                 <td className="px-3 py-2">
                   <button onClick={() => removeLine(i)} className="text-[color:var(--color-error-text)]">

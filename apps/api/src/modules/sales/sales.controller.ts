@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Headers,
   Param,
@@ -15,6 +16,9 @@ import {
   CurrentUser,
   type AuthUser,
 } from '../../common/decorators/current-user.decorator.js';
+import { Roles } from '../../common/decorators/roles.decorator.js';
+import { RequiresTotp } from '../../common/totp/requires-totp.decorator.js';
+import { UserRole } from '../../generated/prisma/client.js';
 
 @Controller('sales')
 export class SalesController {
@@ -64,5 +68,12 @@ export class SalesController {
   @Post('sync')
   sync(@Body() dto: SyncSalesDto, @CurrentUser() user: AuthUser) {
     return this.salesService.sync(dto, user);
+  }
+
+  @Delete(':id')
+  @Roles(UserRole.ADMIN)
+  @RequiresTotp()
+  voidSale(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.salesService.voidSale(id, user);
   }
 }

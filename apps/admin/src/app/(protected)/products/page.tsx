@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
-import { formatSom, formatQty } from "@/lib/format";
+import { formatSom, formatQty, formatMoneyInput, parseMoney } from "@/lib/format";
 
 interface ProductUnit {
   id: string;
@@ -337,7 +337,7 @@ function CreateProductModal({
         sku,
         name,
         categoryId: categoryId || undefined,
-        units: [{ label: baseLabel, factor: 1, price: Number(basePrice), isBase: true }],
+        units: [{ label: baseLabel, factor: 1, price: parseMoney(basePrice), isBase: true }],
       });
       onCreated();
     } catch (err) {
@@ -395,11 +395,12 @@ function CreateProductModal({
           <div className="flex-1">
             <label className="block text-sm mb-1 text-text/70">Narxi (so&apos;m)</label>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               value={basePrice}
-              onChange={(e) => setBasePrice(e.target.value)}
+              onChange={(e) => setBasePrice(formatMoneyInput(e.target.value))}
+              placeholder="0"
               required
-              min={0}
               className="w-full h-10 px-3 border border-divider outline-none focus:border-accent"
             />
           </div>

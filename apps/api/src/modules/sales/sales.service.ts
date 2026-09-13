@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Inject,
   Injectable,
   NotFoundException,
@@ -282,6 +283,72 @@ export class SalesService {
       }
     }
     return results;
+  }
+
+
+  async voidSale(id: string, user: AuthUser) {
+    const sale = await this.prisma.sale.findUnique({
+      where: { id },
+      include: { lines: true, tenders: true, returns: { select: { id: true } } },
+    });
+    if (!sale) throw new NotFoundException('Sotuv topilmadi');
+    if (sale.status === 'VOIDED')
+      throw new ConflictException('Sotuv allaqachon bekor qilingan');
+    if (sale.returns.length > 0)
+      throw new ConflictException(
+        "Qaytarishlar mavjud sotuvni bekor qilib bo'lmaydi",
+      );
+
+    return this.prisma.$transaction(async (tx) => {
+      const productIds = sale.lines.map((l) => l.productId);
+      await this.stockService.lockProducts(tx, productIds);
+
+      for (const line of sale.lines) {
+        await this.stockService.applyMovement(tx, {
+          productId: line.productId,
+          type: 'RETURN',
+          qtyDelta: line.qtyBase,          // positive — adding stock back
+          unitCost: line.unitCostBase,
+          refType: 'sale_void',
+          refId: sale.id,
+          refLineId: line.id,
+          userId: user.sub,
+          note: 'Sotuv bekor qilindi',
+        });
+      }
+
+      // Reverse credit debt if applicable
+      const creditAmount = sale.tenders
+        .filter((t) => t.type === 'CREDIT')
+        .reduce((acc, t) => acc.plus(t.amount), new Prisma.Decimal(0));
+      if (creditAmount.gt(0) && sale.customerId) {
+        await this.customerDebtService.write(tx, {
+          customerId: sale.customerId,
+          type: 'RETURN_CREDIT',
+          amount: creditAmount,
+          refType: 'SaleVoid',
+          refId: sale.id,
+          userId: user.sub,
+          note: 'Sotuv bekor qilindi',
+        });
+      }
+
+      const voided = await tx.sale.update({
+        where: { id: sale.id },
+        data: { status: 'VOIDED', voidedAt: new Date() },
+        include: SALE_INCLUDE,
+      });
+
+      await this.auditService.write(tx, {
+        action: 'Sotuv bekor qilindi',
+        entity: 'Sale',
+        entityId: sale.id,
+        detail: { code: sale.code, total: sale.total.toString() },
+        userId: user.sub,
+      });
+
+      return voided;
+    });
   }
 
   private async resolveLines(tx: TxClient, lines: CreateSaleDto['lines']) {

@@ -11,6 +11,7 @@ const NAV = [
   { href: "/categories", label: "Kategoriyalar" },
   { href: "/receipts", label: "Kirimlar" },
   { href: "/suppliers", label: "Yetkazib beruvchilar" },
+  { href: "/sales", label: "Sotuvlar" },
   { href: "/customers", label: "Mijozlar" },
   { href: "/reports", label: "Hisobotlar" },
   { href: "/audit", label: "Audit" },

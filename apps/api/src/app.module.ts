@@ -17,6 +17,7 @@ import { ShiftsModule } from './modules/shifts/shifts.module.js';
 import { CustomersModule } from './modules/customers/customers.module.js';
 import { SalesModule } from './modules/sales/sales.module.js';
 import { ReturnsModule } from './modules/returns/returns.module.js';
+import { TotpModule } from './common/totp/totp.module.js';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { ReturnsModule } from './modules/returns/returns.module.js';
     PrismaModule,
     AuditModule,
     AuthModule,
+    TotpModule,
     UsersModule,
     InventoryModule,
     CatalogModule,
