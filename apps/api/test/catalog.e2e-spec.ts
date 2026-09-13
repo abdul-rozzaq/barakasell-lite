@@ -114,4 +114,20 @@ describe('Catalog (e2e)', () => {
     expect(res.body.code).toMatch(/^\d{13}$/);
     expect(res.body.isInternal).toBe(true);
   });
+
+  it('supports pagination with page, limit, total, and totalPages', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/api/products?page=1&limit=2')
+      .set(auth())
+      .expect(200);
+
+    expect(res.body).toHaveProperty('items');
+    expect(res.body).toHaveProperty('total');
+    expect(res.body).toHaveProperty('page', 1);
+    expect(res.body).toHaveProperty('limit', 2);
+    expect(res.body).toHaveProperty('totalPages');
+    expect(Array.isArray(res.body.items)).toBe(true);
+    expect(res.body.items.length).toBeLessThanOrEqual(2);
+    expect(typeof res.body.total).toBe('number');
+  });
 });

@@ -23,8 +23,18 @@ export class ProductsController {
     @Query('stockFilter') stockFilter?: StockFilter,
     @Query('cursor') cursor?: string,
     @Query('take') take?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.productsService.findAll({ q, categoryId, stockFilter, cursor, take: take ? Number(take) : undefined });
+    return this.productsService.findAll({
+      q,
+      categoryId,
+      stockFilter,
+      cursor,
+      take: take ? Number(take) : undefined,
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+    });
   }
 
   @Get('lookup/:barcode')

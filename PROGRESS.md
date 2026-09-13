@@ -320,7 +320,7 @@ Ishga tushirish: `pnpm --filter @barakasell/api test` (unit),
 
 ## Admin UI
 
-**1-milestone**: `/login`, `/products` (ro'yxat+filtr+yangi tovar modal),
+**1-milestone**: `/login`, `/products` (ro'yxat+filtr+yangi tovar modal + sahifalash/pagination: `page`, `limit`, `total`, oldingi/keyingi va qator sonini tanlash),
 `/products/[id]` (birliklar, barcode, harakat tarixi), `/receipts`
 (ro'yxat), `/receipts/[id]` (`id==="new"` — yaratish rejimi ham shu sahifada).
 

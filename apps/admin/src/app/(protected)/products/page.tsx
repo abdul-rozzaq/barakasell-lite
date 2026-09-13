@@ -51,12 +51,37 @@ function stockBadge(stock: number) {
   );
 }
 
+interface ProductsResponse {
+  items: ProductRow[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+function getPaginationPages(current: number, total: number): (number | "...")[] {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+  if (current <= 4) {
+    return [1, 2, 3, 4, 5, "...", total];
+  }
+  if (current >= total - 3) {
+    return [1, "...", total - 4, total - 3, total - 2, total - 1, total];
+  }
+  return [1, "...", current - 1, current, current + 1, "...", total];
+}
+
 export default function ProductsPage() {
   const [items, setItems] = useState<ProductRow[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [q, setQ] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [stockFilter, setStockFilter] = useState<StockFilter>("all");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [status, setStatus] = useState<"loading" | "ok" | "empty" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -65,26 +90,37 @@ export default function ProductsPage() {
     setStatus("loading");
     try {
       const params = new URLSearchParams();
-      if (q) params.set("q", q);
+      if (q.trim()) params.set("q", q.trim());
       if (categoryId) params.set("categoryId", categoryId);
       if (stockFilter !== "all") params.set("stockFilter", stockFilter);
-      const res = await api.get<{ items: ProductRow[] }>(`/products?${params.toString()}`);
+      params.set("page", String(page));
+      params.set("limit", String(pageSize));
+      const res = await api.get<ProductsResponse>(`/products?${params.toString()}`);
       setItems(res.items);
+      setTotal(res.total ?? res.items.length);
+      setTotalPages(res.totalPages ?? Math.max(1, Math.ceil((res.total ?? res.items.length) / pageSize)));
       setStatus(res.items.length === 0 ? "empty" : "ok");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Xatolik yuz berdi");
       setStatus("error");
     }
-  }, [q, categoryId, stockFilter]);
+  }, [q, categoryId, stockFilter, page, pageSize]);
 
   useEffect(() => {
     api.get<Category[]>("/categories").then(setCategories).catch(() => {});
   }, []);
 
   useEffect(() => {
+    setPage(1);
+  }, [q, categoryId, stockFilter, pageSize]);
+
+  useEffect(() => {
     const t = setTimeout(load, 250);
     return () => clearTimeout(t);
   }, [load]);
+
+  const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const to = Math.min(page * pageSize, total);
 
   return (
     <div className="p-6">
@@ -188,6 +224,77 @@ export default function ProductsPage() {
               })}
           </tbody>
         </table>
+      </div>
+
+      {/* Pagination Footer */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4 px-1 text-xs">
+        <div className="text-text/60">
+          {total > 0 ? (
+            <span>
+              <strong className="text-text font-medium">{total.toLocaleString("ru-RU")}</strong> tadan{" "}
+              <strong className="text-text font-medium">
+                {from}–{to}
+              </strong>{" "}
+              ko&apos;rsatilmoqda
+            </span>
+          ) : (
+            <span>Tovarlar topilmadi</span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 text-text/60">
+            <span>Qatorda:</span>
+            <select
+              value={pageSize}
+              onChange={(e) => setPageSize(Number(e.target.value))}
+              className="h-8 px-2 border border-divider bg-white text-xs text-text/80 outline-none"
+            >
+              <option value={25}>25 tadan</option>
+              <option value={50}>50 tadan</option>
+              <option value={100}>100 tadan</option>
+            </select>
+          </div>
+
+          {totalPages > 1 && (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page <= 1 || status === "loading"}
+                className="h-8 px-2.5 border border-divider font-condensed bg-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-black/[.03]"
+              >
+                ‹ Oldingi
+              </button>
+              {getPaginationPages(page, totalPages).map((p, idx) =>
+                p === "..." ? (
+                  <span key={`dots-${idx}`} className="px-1 text-text/40">
+                    ...
+                  </span>
+                ) : (
+                  <button
+                    key={p}
+                    onClick={() => setPage(p)}
+                    disabled={status === "loading"}
+                    className={`h-8 min-w-8 px-2 font-condensed border ${
+                      page === p
+                        ? "border-accent bg-accent text-white font-bold"
+                        : "border-divider bg-white text-text/80 hover:bg-black/[.03]"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                )
+              )}
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages || status === "loading"}
+                className="h-8 px-2.5 border border-divider font-condensed bg-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-black/[.03]"
+              >
+                Keyingi ›
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {showCreate && (

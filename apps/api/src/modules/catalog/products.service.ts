@@ -34,8 +34,9 @@ export class ProductsService {
     stockFilter?: StockFilter;
     cursor?: string;
     take?: number;
+    page?: number;
+    limit?: number;
   }) {
-    const take = Math.min(params.take ?? 50, 200);
     const where: Prisma.ProductWhereInput = {
       isActive: true,
       OR: params.q
@@ -53,19 +54,50 @@ export class ProductsService {
             : undefined,
     };
 
-    const items = await this.prisma.product.findMany({
-      where,
-      include: PRODUCT_INCLUDE,
-      orderBy: { name: 'asc' },
-      take: take + 1,
-      ...(params.cursor ? { cursor: { id: params.cursor }, skip: 1 } : {}),
-    });
+    if (params.page !== undefined) {
+      const page = Math.max(1, params.page);
+      const limit = Math.min(params.limit ?? params.take ?? 50, 200);
+      const skip = (page - 1) * limit;
+
+      const [total, items] = await Promise.all([
+        this.prisma.product.count({ where }),
+        this.prisma.product.findMany({
+          where,
+          include: PRODUCT_INCLUDE,
+          orderBy: { name: 'asc' },
+          skip,
+          take: limit,
+        }),
+      ]);
+
+      return {
+        items,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        nextCursor: items.length > 0 ? items[items.length - 1].id : null,
+      };
+    }
+
+    const take = Math.min(params.take ?? 50, 200);
+    const [total, items] = await Promise.all([
+      this.prisma.product.count({ where }),
+      this.prisma.product.findMany({
+        where,
+        include: PRODUCT_INCLUDE,
+        orderBy: { name: 'asc' },
+        take: take + 1,
+        ...(params.cursor ? { cursor: { id: params.cursor }, skip: 1 } : {}),
+      }),
+    ]);
 
     const hasMore = items.length > take;
-    const page = hasMore ? items.slice(0, take) : items;
+    const pageItems = hasMore ? items.slice(0, take) : items;
     return {
-      items: page,
-      nextCursor: hasMore ? page[page.length - 1].id : null,
+      items: pageItems,
+      total,
+      nextCursor: hasMore ? pageItems[pageItems.length - 1].id : null,
     };
   }
 
