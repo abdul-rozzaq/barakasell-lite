@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../state/app-context';
 import { api, ApiError } from '../lib/api';
 import { formatSom } from '../lib/format';
-import { CornerMarks } from '../components/CornerMarks';
 import { NumericPadModal } from '../components/NumericPad';
 import type { Customer, TenderDraft, TenderType } from '../state/types';
 
@@ -64,8 +63,7 @@ export function PaymentScreen() {
         <button type="button" onClick={backToSale} className="text-sm text-text/70 mb-3">
           ← Savatga qaytish
         </button>
-        <div className="relative p-4 bg-surface">
-          <CornerMarks />
+        <div className="p-4 bg-surface">
           <div className="text-sm text-text/60">{itemCount} tovar</div>
           <div className="font-condensed text-3xl font-bold mt-1">{formatSom(total)}</div>
         </div>

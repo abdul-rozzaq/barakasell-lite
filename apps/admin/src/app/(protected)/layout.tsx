@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth-context";
 const NAV = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/products", label: "Tovarlar" },
+  { href: "/categories", label: "Kategoriyalar" },
   { href: "/receipts", label: "Kirimlar" },
   { href: "/suppliers", label: "Yetkazib beruvchilar" },
   { href: "/customers", label: "Mijozlar" },

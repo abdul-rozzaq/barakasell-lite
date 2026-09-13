@@ -1,6 +1,5 @@
 import { useApp } from '../state/app-context';
 import { formatSom } from '../lib/format';
-import { CornerMarks } from '../components/CornerMarks';
 
 const TENDER_LABELS: Record<string, string> = {
   CASH: 'Naqd',
@@ -18,8 +17,7 @@ export function SaleCompleteScreen() {
 
   return (
     <div className="h-full flex flex-col items-center justify-center p-6 gap-4">
-      <div className="relative bg-surface p-8 flex flex-col items-center gap-3 max-w-sm w-full">
-        <CornerMarks />
+      <div className="bg-surface p-8 flex flex-col items-center gap-3 max-w-sm w-full">
         <span className="flex items-center justify-center h-16 w-16 rounded-full bg-success-border text-white text-3xl">
           ✓
         </span>

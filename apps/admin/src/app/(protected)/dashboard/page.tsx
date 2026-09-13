@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { formatSom, formatQty } from "@/lib/format";
-import { CornerMarks } from "@/components/CornerMarks";
 
 interface TopProduct {
   productId: string;
@@ -68,25 +67,21 @@ export default function DashboardPage() {
       <h1 className="font-condensed text-2xl font-bold mb-5">Dashboard</h1>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <div className="relative bg-surface p-4">
-          <CornerMarks />
+        <div className="bg-surface p-4">
           <div className="text-sm text-text/60">Bugungi tushum</div>
           <div className="font-condensed text-2xl font-bold mt-1">{formatSom(data.todayRevenue)}</div>
         </div>
-        <div className="relative bg-surface p-4">
-          <CornerMarks />
+        <div className="bg-surface p-4">
           <div className="text-sm text-text/60">Bugungi foyda</div>
           <div className="font-condensed text-2xl font-bold mt-1">{formatSom(data.todayProfit)}</div>
         </div>
-        <div className="relative bg-surface p-4">
-          <CornerMarks />
+        <div className="bg-surface p-4">
           <div className="text-sm text-text/60">Naqd farqi</div>
           <div className={`font-condensed text-2xl font-bold mt-1 ${diffColor(cashDiff)}`}>
             {formatSom(data.todayCashDiff)}
           </div>
         </div>
-        <div className="relative bg-surface p-4">
-          <CornerMarks />
+        <div className="bg-surface p-4">
           <div className="text-sm text-text/60">Ochiq smenalar</div>
           <div className="font-condensed text-2xl font-bold mt-1">{data.openShiftsCount}</div>
         </div>
