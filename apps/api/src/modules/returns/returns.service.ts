@@ -11,6 +11,8 @@ import { StockService } from '../inventory/stock.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { CustomerDebtService } from '../customers/customer-debt.service.js';
 import { ShiftsService } from '../shifts/shifts.service.js';
+import { LoyaltyService } from '../loyalty/loyalty.service.js';
+import { proportionalPointsReversal } from '../loyalty/loyalty.util.js';
 import {
   FISCAL_GATEWAY,
   type FiscalGateway,
@@ -29,6 +31,7 @@ export class ReturnsService {
     private readonly auditService: AuditService,
     private readonly customerDebtService: CustomerDebtService,
     private readonly shiftsService: ShiftsService,
+    private readonly loyaltyService: LoyaltyService,
     @Inject(FISCAL_GATEWAY) private readonly fiscalGateway: FiscalGateway,
   ) {}
 
@@ -154,6 +157,24 @@ export class ReturnsService {
           refId: created.id,
           userId: user.sub,
         });
+      }
+
+      if (sale.loyaltyPointsEarned > 0 && sale.customerId) {
+        const reversedPoints = proportionalPointsReversal(
+          sale.loyaltyPointsEarned,
+          refundTotal,
+          sale.total,
+        );
+        if (reversedPoints > 0) {
+          await this.loyaltyService.write(tx, {
+            customerId: sale.customerId,
+            type: 'RETURN_REVERSAL',
+            points: reversedPoints,
+            refType: 'SaleReturn',
+            refId: created.id,
+            userId: user.sub,
+          });
+        }
       }
 
       const finalized = await tx.saleReturn.update({

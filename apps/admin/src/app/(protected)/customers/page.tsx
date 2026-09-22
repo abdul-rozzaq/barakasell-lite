@@ -10,6 +10,8 @@ interface CustomerRow {
   phone: string | null;
   debtBalance: string;
   note: string | null;
+  cardCode: string | null;
+  pointsBalance: number;
 }
 
 interface DebtEntry {
@@ -41,6 +43,7 @@ export default function CustomersPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [status, setStatus] = useState<"loading" | "ok" | "empty" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
+  const [creatingCard, setCreatingCard] = useState(false);
 
   const load = useCallback(async () => {
     setStatus("loading");
@@ -61,13 +64,30 @@ export default function CustomersPage() {
     return () => clearTimeout(t);
   }, [load]);
 
+  const loadDetail = useCallback((id: string) => {
+    api.get<CustomerDetail>(`/customers/${id}`).then(setDetail).catch(() => setDetail(null));
+  }, []);
+
   useEffect(() => {
     if (!selectedId) {
       setDetail(null);
       return;
     }
-    api.get<CustomerDetail>(`/customers/${selectedId}`).then(setDetail).catch(() => setDetail(null));
-  }, [selectedId]);
+    loadDetail(selectedId);
+  }, [selectedId, loadDetail]);
+
+  async function createCard() {
+    if (!detail) return;
+    setCreatingCard(true);
+    try {
+      await api.post(`/customers/${detail.id}/loyalty/card`);
+      loadDetail(detail.id);
+    } catch {
+      // silently ignore — the card panel just stays in its "yaratish" state
+    } finally {
+      setCreatingCard(false);
+    }
+  }
 
   return (
     <div className="p-6 flex gap-6">
@@ -136,6 +156,30 @@ export default function CustomersPage() {
                   {formatSom(detail.debtBalance)}
                 </div>
               </div>
+              <div className="p-4 bg-surface">
+                <div className="text-sm text-text/60">Loyalty ball</div>
+                <div className="font-condensed text-2xl font-bold mt-1">{detail.pointsBalance}</div>
+              </div>
+            </div>
+
+            <div className="p-4 bg-surface mb-6 max-w-md flex items-center justify-between">
+              {detail.cardCode ? (
+                <div>
+                  <div className="text-sm text-text/60">Karta kodi</div>
+                  <div className="font-condensed text-lg font-bold tracking-wider">{detail.cardCode}</div>
+                </div>
+              ) : (
+                <div className="text-sm text-text/60">Karta hali yaratilmagan</div>
+              )}
+              {!detail.cardCode && (
+                <button
+                  onClick={createCard}
+                  disabled={creatingCard}
+                  className="h-9 px-3 bg-accent text-white text-sm font-condensed font-semibold disabled:opacity-50"
+                >
+                  Karta yaratish
+                </button>
+              )}
             </div>
 
             <h3 className="font-condensed text-lg font-semibold mb-2">To&apos;lov tarixi</h3>

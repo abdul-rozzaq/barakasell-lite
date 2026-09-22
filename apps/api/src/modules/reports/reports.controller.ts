@@ -40,4 +40,9 @@ export class ReportsController {
   deadStock(@Query('days') days?: string) {
     return this.reportsService.deadStock(days ? Number(days) : 30);
   }
+
+  @Get('demand')
+  demand(@Query('days') days?: string) {
+    return this.reportsService.demand(days ? Number(days) : 30);
+  }
 }

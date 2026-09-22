@@ -33,6 +33,16 @@ export class CustomersService {
     return customer;
   }
 
+  async findByCardCode(cardCode: string) {
+    const customer = await this.prisma.customer.findUnique({ where: { cardCode } });
+    if (!customer) throw new NotFoundException('Karta topilmadi');
+    return customer;
+  }
+
+  findByPhone(phone: string) {
+    return this.prisma.customer.findFirst({ where: { phone } });
+  }
+
   listEntries(id: string, cursor?: string, take = 50) {
     return this.prisma.customerDebtEntry.findMany({
       where: { customerId: id },

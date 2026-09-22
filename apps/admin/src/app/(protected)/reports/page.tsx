@@ -4,13 +4,14 @@ import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { formatSom, formatQty } from "@/lib/format";
 
-type Tab = "stock" | "profit" | "shifts" | "dead";
+type Tab = "stock" | "profit" | "shifts" | "dead" | "demand";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "stock", label: "Qoldiq hisoboti" },
   { key: "profit", label: "Foyda-zarar" },
   { key: "shifts", label: "Smenalar" },
   { key: "dead", label: "Harakatsiz tovarlar" },
+  { key: "demand", label: "Talab qilingan" },
 ];
 
 export default function ReportsPage() {
@@ -37,6 +38,7 @@ export default function ReportsPage() {
       {tab === "profit" && <ProfitTab />}
       {tab === "shifts" && <ShiftsTab />}
       {tab === "dead" && <DeadStockTab />}
+      {tab === "demand" && <DemandTab />}
     </div>
   );
 }
@@ -241,6 +243,55 @@ interface DeadStockRow {
   name: string;
   stock: string;
   lastSoldAt: string | null;
+}
+
+interface DemandRow {
+  productId: string;
+  name: string;
+  stock: string;
+  requestCount: number;
+}
+
+function DemandTab() {
+  const { data, error } = useReportData<DemandRow[]>("/reports/demand?days=30");
+  if (error) return <div className="text-[color:var(--color-error-text)] text-sm">{error}</div>;
+  if (!data) return <div className="text-text/50 text-sm">Yuklanmoqda...</div>;
+
+  return (
+    <div>
+      <p className="text-sm text-text/60 mb-3">
+        Oxirgi 30 kunda mijozlar so&apos;ragan, lekin qoldig&apos;i tugagan tovarlar — xarid rejasi uchun.
+      </p>
+      <div className="border border-divider bg-white">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-divider text-left text-text/60">
+              <th className="px-4 py-2.5 font-medium">Tovar</th>
+              <th className="px-4 py-2.5 font-medium">Qoldiq</th>
+              <th className="px-4 py-2.5 font-medium">So&apos;ralgan soni</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.length === 0 ? (
+              <tr>
+                <td colSpan={3} className="px-4 py-10 text-center text-text/50">
+                  So&apos;rov yo&apos;q
+                </td>
+              </tr>
+            ) : (
+              data.map((r) => (
+                <tr key={r.productId} className="border-b border-divider last:border-0">
+                  <td className="px-4 py-2.5">{r.name}</td>
+                  <td className="px-4 py-2.5">{formatQty(r.stock)}</td>
+                  <td className="px-4 py-2.5 font-medium">{r.requestCount}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
 }
 
 function DeadStockTab() {

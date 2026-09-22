@@ -3,9 +3,10 @@ import { ReturnsController } from './returns.controller.js';
 import { ReturnsService } from './returns.service.js';
 import { ShiftsModule } from '../shifts/shifts.module.js';
 import { CustomersModule } from '../customers/customers.module.js';
+import { LoyaltyModule } from '../loyalty/loyalty.module.js';
 
 @Module({
-  imports: [ShiftsModule, CustomersModule],
+  imports: [ShiftsModule, CustomersModule, LoyaltyModule],
   controllers: [ReturnsController],
   providers: [ReturnsService],
 })

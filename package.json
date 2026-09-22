@@ -6,7 +6,8 @@
     "dev": "pnpm -r --parallel dev",
     "dev:api": "pnpm --filter @barakasell/api dev",
     "dev:admin": "pnpm --filter @barakasell/admin dev",
-    "dev:pos": "pnpm --filter @barakasell/pos dev"
+    "dev:pos": "pnpm --filter @barakasell/pos dev",
+    "dev:bot": "pnpm --filter @barakasell/bot dev"
   },
   "packageManager": "pnpm@12.3.4",
   "engines": {

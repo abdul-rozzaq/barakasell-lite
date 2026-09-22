@@ -15,6 +15,9 @@ import { FiscalModule } from './modules/fiscal/fiscal.module.js';
 import { SettingsModule } from './modules/settings/settings.module.js';
 import { ShiftsModule } from './modules/shifts/shifts.module.js';
 import { CustomersModule } from './modules/customers/customers.module.js';
+import { LoyaltyModule } from './modules/loyalty/loyalty.module.js';
+import { BotModule } from './modules/bot/bot.module.js';
+import { WaitlistModule } from './modules/waitlist/waitlist.module.js';
 import { SalesModule } from './modules/sales/sales.module.js';
 import { ReturnsModule } from './modules/returns/returns.module.js';
 import { TotpModule } from './common/totp/totp.module.js';
@@ -36,6 +39,9 @@ import { TotpModule } from './common/totp/totp.module.js';
     SettingsModule,
     ShiftsModule,
     CustomersModule,
+    LoyaltyModule,
+    BotModule,
+    WaitlistModule,
     SalesModule,
     ReturnsModule,
   ],

@@ -279,4 +279,38 @@ export class ReportsService {
       }))
       .filter((p) => !p.lastSoldAt || p.lastSoldAt < cutoff);
   }
+
+  // The mirror image of deadStock(): products customers keep asking for
+  // (ProductRequest) that are still out of stock — a shopping-list report
+  // for the owner, not something a sale/return ever touches.
+  async demand(days: number) {
+    const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+    const requests = await this.prisma.productRequest.groupBy({
+      by: ['productId'],
+      where: { createdAt: { gte: cutoff }, productId: { not: null } },
+      _count: { _all: true },
+    });
+    if (requests.length === 0) return [];
+
+    const productIds = requests.map((r) => r.productId as string);
+    const products = await this.prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, name: true, stock: true },
+    });
+    const productMap = new Map(products.map((p) => [p.id, p]));
+
+    return requests
+      .map((r) => {
+        const product = productMap.get(r.productId as string);
+        return {
+          productId: r.productId as string,
+          name: product?.name ?? "Noma'lum tovar",
+          stock: product?.stock ?? new Prisma.Decimal(0),
+          requestCount: r._count._all,
+        };
+      })
+      .filter((r) => r.stock.lte(0))
+      .sort((a, b) => b.requestCount - a.requestCount);
+  }
 }

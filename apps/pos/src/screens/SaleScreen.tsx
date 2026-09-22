@@ -11,7 +11,7 @@ import type { Category, Product, ProductUnit } from '../state/types';
 const LOW_STOCK_THRESHOLD = 10;
 
 export function SaleScreen() {
-  const { state, addToCart, updateCartLineQty, removeCartLine, goToPayment } = useApp();
+  const { state, addToCart, updateCartLineQty, removeCartLine, goToPayment, setCustomer } = useApp();
   const [query, setQuery] = useState('');
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -20,6 +20,7 @@ export function SaleScreen() {
   const [editingLineIndex, setEditingLineIndex] = useState<number | null>(null);
   const [stockNotice, setStockNotice] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [requestModalFor, setRequestModalFor] = useState<string | null>(null);
 
   useEffect(() => {
     api.get<Category[]>('/categories').then(setCategories).catch(() => setCategories([]));
@@ -46,6 +47,8 @@ export function SaleScreen() {
         })
         .catch(() => setProducts([]));
 
+      // Loyalty card scanning/entry happens on the Payment screen now (see
+      // PaymentScreen.tsx) — this input only resolves product barcodes.
       const trimmed = query.trim();
       if (/^\d{6,}$/.test(trimmed)) {
         api
@@ -204,9 +207,34 @@ export function SaleScreen() {
               );
             })}
           </div>
+          {query.trim() && products.length === 0 && (
+            <div className="flex flex-col items-center gap-2 py-6 text-center text-sm text-text/60">
+              <span>Hech narsa topilmadi.</span>
+              <button
+                type="button"
+                onClick={() => setRequestModalFor(query.trim())}
+                className="h-9 px-4 border border-divider font-condensed font-semibold"
+              >
+                Mijoz so&apos;radi
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="w-full md:w-[380px] shrink-0 flex flex-col border-t md:border-t-0 md:border-l border-divider bg-white">
+          {state.customer && (
+            <div className="flex items-center justify-between px-3 py-2 bg-accent-tint-bg border-b border-divider text-sm shrink-0">
+              <span className="truncate">
+                {state.customer.name}
+                {typeof state.customer.pointsBalance === 'number' && (
+                  <span className="text-text/60"> · {state.customer.pointsBalance} ball</span>
+                )}
+              </span>
+              <button type="button" onClick={() => setCustomer(null)} className="text-error-text px-1 shrink-0">
+                ✕
+              </button>
+            </div>
+          )}
           <div className="flex-1 overflow-y-auto">
             {state.cart.length === 0 ? (
               <div className="p-6 text-center text-sm text-text/60">Savat bo'sh</div>
@@ -292,6 +320,69 @@ export function SaleScreen() {
           onCancel={() => setEditingLineIndex(null)}
         />
       )}
+
+      {requestModalFor !== null && (
+        <ProductRequestModal
+          productName={requestModalFor}
+          onClose={() => setRequestModalFor(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function ProductRequestModal({ productName, onClose }: { productName: string; onClose: () => void }) {
+  const [phone, setPhone] = useState('');
+  const [status, setStatus] = useState<'idle' | 'saving' | 'done'>('idle');
+
+  async function submit() {
+    setStatus('saving');
+    try {
+      await api.post('/product-requests', { rawText: productName, phone: phone || undefined });
+      setStatus('done');
+    } catch {
+      setStatus('idle');
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
+      <div className="bg-white border border-divider w-full max-w-sm p-5">
+        {status === 'done' ? (
+          <>
+            <div className="font-condensed text-lg font-bold mb-3">Qabul qilindi</div>
+            <p className="text-sm text-text/70 mb-4">Tovar kelganda mijozga xabar beriladi.</p>
+            <button type="button" onClick={onClose} className="w-full h-11 bg-accent text-white font-condensed font-semibold">
+              Yopish
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="font-condensed text-lg font-bold mb-1">Mijoz so&apos;radi</div>
+            <p className="text-sm text-text/60 mb-3">&laquo;{productName}&raquo;</p>
+            <label className="block text-sm mb-1 text-text/70">Telefon (ixtiyoriy)</label>
+            <input
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+998..."
+              className="w-full h-11 px-3 border border-divider mb-4 outline-none focus:border-accent"
+            />
+            <div className="flex gap-2 justify-end">
+              <button type="button" onClick={onClose} className="h-10 px-4 border border-divider text-sm">
+                Bekor qilish
+              </button>
+              <button
+                type="button"
+                onClick={submit}
+                disabled={status === 'saving'}
+                className="font-condensed h-10 px-4 bg-accent text-white font-semibold text-sm disabled:opacity-50"
+              >
+                Saqlash
+              </button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

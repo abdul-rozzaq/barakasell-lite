@@ -20,6 +20,9 @@ export function PaymentScreen() {
   const [discountAmount, setDiscountAmount] = useState(0);
   const [customerQuery, setCustomerQuery] = useState('');
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [cardCode, setCardCode] = useState('');
+  const [cardError, setCardError] = useState<string | null>(null);
+  const [cardBusy, setCardBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -44,6 +47,22 @@ export function PaymentScreen() {
     }, 250);
     return () => clearTimeout(timer);
   }, [mode, customerQuery]);
+
+  async function attachCard() {
+    const code = cardCode.trim();
+    if (!code || cardBusy) return;
+    setCardBusy(true);
+    setCardError(null);
+    try {
+      const customer = await api.get<Customer>(`/customers/by-card/${code}`);
+      setCustomer(customer);
+      setCardCode('');
+    } catch (err) {
+      setCardError(err instanceof ApiError ? err.message : 'Karta topilmadi');
+    } finally {
+      setCardBusy(false);
+    }
+  }
 
   const paid = amounts.CASH + amounts.CARD + amounts.CLICK;
   const remaining = Math.max(0, total - paid);
@@ -80,6 +99,44 @@ export function PaymentScreen() {
           )}
           <div className="font-condensed text-3xl font-bold mt-1">{formatSom(total)}</div>
         </div>
+
+        {state.customer ? (
+          <div className="flex items-center justify-between mt-2 p-2 bg-accent-tint-bg text-sm">
+            <span className="truncate">
+              {state.customer.name}
+              {typeof state.customer.pointsBalance === 'number' && (
+                <span className="text-text/60"> · {state.customer.pointsBalance} ball</span>
+              )}
+            </span>
+            <button type="button" onClick={() => setCustomer(null)} className="text-error-text px-1 shrink-0">
+              ✕
+            </button>
+          </div>
+        ) : (
+          <div className="mt-2">
+            <div className="flex gap-1">
+              <input
+                type="text"
+                value={cardCode}
+                onChange={(e) => setCardCode(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') attachCard();
+                }}
+                placeholder="Mijoz kartasi: skanerlang yoki kiriting"
+                className="flex-1 h-10 px-2 border border-divider text-sm"
+              />
+              <button
+                type="button"
+                onClick={attachCard}
+                disabled={cardBusy}
+                className="h-10 px-3 bg-surface text-sm font-condensed font-semibold disabled:opacity-40"
+              >
+                Biriktirish
+              </button>
+            </div>
+            {cardError && <div className="text-xs text-error-text mt-1">{cardError}</div>}
+          </div>
+        )}
 
         <button
           type="button"

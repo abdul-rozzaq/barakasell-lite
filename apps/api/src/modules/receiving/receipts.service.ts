@@ -8,6 +8,7 @@ import { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../common/prisma/prisma.service.js';
 import { StockService } from '../inventory/stock.service.js';
 import { AuditService } from '../audit/audit.service.js';
+import { WaitlistService } from '../waitlist/waitlist.service.js';
 import { CreateReceiptDto } from './dto/create-receipt.dto.js';
 
 const RECEIPT_INCLUDE = {
@@ -21,6 +22,7 @@ export class ReceiptsService {
     private readonly prisma: PrismaService,
     private readonly stockService: StockService,
     private readonly auditService: AuditService,
+    private readonly waitlistService: WaitlistService,
   ) {}
 
   findAll() {
@@ -102,6 +104,12 @@ export class ReceiptsService {
         data: { status: 'POSTED', postedAt: new Date() },
         include: RECEIPT_INCLUDE,
       });
+
+      await this.waitlistService.notifyArrivals(
+        tx,
+        [...new Set(receipt.lines.map((l) => l.productId))],
+        receipt.id,
+      );
 
       await this.auditService.write(tx, {
         action: 'Kirim tasdiqlandi',

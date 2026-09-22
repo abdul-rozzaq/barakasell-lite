@@ -12,6 +12,8 @@ import { AuditService } from '../audit/audit.service.js';
 import { CustomerDebtService } from '../customers/customer-debt.service.js';
 import { ShiftsService } from '../shifts/shifts.service.js';
 import { SettingsService } from '../settings/settings.service.js';
+import { LoyaltyService } from '../loyalty/loyalty.service.js';
+import { computeEarnedPoints } from '../loyalty/loyalty.util.js';
 import {
   FISCAL_GATEWAY,
   type FiscalGateway,
@@ -39,6 +41,7 @@ export class SalesService {
     private readonly customerDebtService: CustomerDebtService,
     private readonly shiftsService: ShiftsService,
     private readonly settingsService: SettingsService,
+    private readonly loyaltyService: LoyaltyService,
     @Inject(FISCAL_GATEWAY) private readonly fiscalGateway: FiscalGateway,
   ) {}
 
@@ -209,9 +212,26 @@ export class SalesService {
         });
       }
 
+      // Points earn on whatever customer is attached, regardless of tender
+      // mix (not just CREDIT sales) — see plan.md loyalty section.
+      let loyaltyPointsEarned = 0;
+      if (settings.loyaltyEnabled && dto.customerId) {
+        loyaltyPointsEarned = computeEarnedPoints(total, settings);
+        if (loyaltyPointsEarned > 0) {
+          await this.loyaltyService.write(tx, {
+            customerId: dto.customerId,
+            type: 'EARN',
+            points: loyaltyPointsEarned,
+            refType: 'Sale',
+            refId: created.id,
+            userId: user.sub,
+          });
+        }
+      }
+
       const finalized = await tx.sale.update({
         where: { id: created.id },
-        data: { cogsTotal },
+        data: { cogsTotal, loyaltyPointsEarned },
         include: SALE_INCLUDE,
       });
 
@@ -329,6 +349,18 @@ export class SalesService {
           customerId: sale.customerId,
           type: 'RETURN_CREDIT',
           amount: creditAmount,
+          refType: 'SaleVoid',
+          refId: sale.id,
+          userId: user.sub,
+          note: 'Sotuv bekor qilindi',
+        });
+      }
+
+      if (sale.loyaltyPointsEarned > 0 && sale.customerId) {
+        await this.loyaltyService.write(tx, {
+          customerId: sale.customerId,
+          type: 'RETURN_REVERSAL',
+          points: sale.loyaltyPointsEarned,
           refType: 'SaleVoid',
           refId: sale.id,
           userId: user.sub,

@@ -61,6 +61,8 @@ export interface Customer {
   name: string;
   phone: string | null;
   debtBalance: string;
+  cardCode?: string | null;
+  pointsBalance?: number;
 }
 
 export interface ShiftSummary {

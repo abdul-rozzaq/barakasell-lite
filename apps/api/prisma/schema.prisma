@@ -80,6 +80,36 @@ enum ImportStatus {
   FAILED
 }
 
+enum LoyaltyEntryType {
+  EARN
+  REDEEM
+  ADJUSTMENT
+  RETURN_REVERSAL
+}
+
+enum ProductRequestStatus {
+  OPEN
+  NOTIFIED
+  CLOSED
+}
+
+enum ProductRequestSource {
+  BOT
+  POS
+  ADMIN
+}
+
+enum OutboxTargetType {
+  CUSTOMER
+  OWNER
+}
+
+enum OutboxStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
 model User {
   id           String     @id @default(uuid())
   name         String
@@ -89,6 +119,9 @@ model User {
   role         UserRole
   status       UserStatus @default(ACTIVE)
   createdAt    DateTime   @default(now())
+  // Linked via a one-time code — see modules/owner-link — so the Telegram
+  // bot can tell an owner/admin apart from a customer chat.
+  telegramId   BigInt?    @unique
 
   sales     Sale[]
   shifts    Shift[]
@@ -122,6 +155,7 @@ model Product {
   units    ProductUnit[]
   barcodes Barcode[]
   ledger   StockLedgerEntry[]
+  requests ProductRequest[]
 
   @@index([name])
   @@index([categoryId, isActive])
@@ -263,7 +297,21 @@ model Customer {
   note        String?
   createdAt   DateTime @default(now())
 
-  entries CustomerDebtEntry[]
+  // Loyalty card barcode (EAN-13, "28" prefix — see loyalty-card.util.ts —
+  // distinct from Product's internal "29" prefix so POS's single barcode
+  // input field can tell a customer card from a product scan by prefix
+  // alone). Nullable: a card is only generated on request (admin button or
+  // Telegram bot registration), not for every customer.
+  cardCode      String? @unique
+  // Cache derived from LoyaltyEntry, same pattern as debtBalance above —
+  // the only writer is LoyaltyService.
+  pointsBalance Int     @default(0)
+  telegramId       BigInt? @unique
+  telegramUsername String?
+
+  entries       CustomerDebtEntry[]
+  loyaltyEntries LoyaltyEntry[]
+  productRequests ProductRequest[]
 
   @@index([name])
   @@index([phone])
@@ -282,6 +330,28 @@ model CustomerDebtEntry {
   tender       TenderType?
   userId       String
   occurredAt   DateTime      @default(now())
+  note         String?
+
+  @@index([customerId, seq])
+  @@index([refType, refId])
+  @@index([occurredAt])
+}
+
+// The debt-ledger pattern (see CustomerDebtEntry above), applied to loyalty
+// points: signed points, cumulative balanceAfter snapshot. The only writer
+// of Customer.pointsBalance is LoyaltyService.
+model LoyaltyEntry {
+  id           String           @id @default(uuid())
+  seq          BigInt           @default(autoincrement())
+  customerId   String
+  customer     Customer         @relation(fields: [customerId], references: [id])
+  type         LoyaltyEntryType
+  points       Int
+  balanceAfter Int
+  refType      String?
+  refId        String?
+  userId       String?
+  occurredAt   DateTime         @default(now())
   note         String?
 
   @@index([customerId, seq])
@@ -309,6 +379,12 @@ model Sale {
   paidAmount     Decimal      @db.Decimal(14, 2)
   changeAmount   Decimal      @default(0) @db.Decimal(14, 2)
   cogsTotal      Decimal      @db.Decimal(18, 6)
+  // Loyalty is opt-in per Settings.loyaltyEnabled — see LoyaltyService.
+  // loyaltyDiscount stays 0 until redeem-at-checkout ships (plan.md B6);
+  // earned points already accrue whenever a customer is attached.
+  loyaltyPointsEarned   Int     @default(0)
+  loyaltyPointsRedeemed Int     @default(0)
+  loyaltyDiscount       Decimal @default(0) @db.Decimal(14, 2)
   fiscalStatus   FiscalStatus @default(NOT_REQUIRED)
   fiscalRef      String?
   soldAt         DateTime
@@ -446,7 +522,18 @@ model Settings {
   roundingMode       RoundingMode @default(NONE)
   lastClosedPeriodAt DateTime?
   storeName          String       @default("BarakaSELL")
-  updatedAt          DateTime     @updatedAt
+
+  loyaltyEnabled          Boolean @default(false)
+  // Earn rule: loyaltyEarnPoints ball per loyaltyEarnPerSum so'm of Sale.total.
+  loyaltyEarnPoints       Int     @default(1)
+  loyaltyEarnPerSum       Decimal @default(1000) @db.Decimal(14, 2)
+  // Redeem rule: 1 ball = loyaltyPointValue so'm off, subject to the two
+  // floors/caps below (both enforced together, see loyalty.util.ts).
+  loyaltyPointValue       Decimal @default(100) @db.Decimal(14, 2)
+  loyaltyMinRedeemPoints  Int     @default(10)
+  loyaltyMaxRedeemPercent Int     @default(50)
+
+  updatedAt DateTime @updatedAt
 }
 
 model ImportJob {
@@ -473,4 +560,44 @@ model ImportRow {
   applied  Boolean   @default(false)
 
   @@index([jobId, rowIndex])
+}
+
+// A customer's (or a cashier's, on their behalf) "let me know when this is
+// back in stock" — either against a known productId or free-text rawText
+// when the search came up empty. Resolved automatically when a matching
+// Receipt is POSTED — see ReceiptsService.post() / WaitlistService.
+model ProductRequest {
+  id         String               @id @default(uuid())
+  customerId String?
+  customer   Customer?            @relation(fields: [customerId], references: [id])
+  productId  String?
+  product    Product?             @relation(fields: [productId], references: [id])
+  rawText    String?
+  phone      String?
+  status     ProductRequestStatus @default(OPEN)
+  source     ProductRequestSource
+  createdAt  DateTime             @default(now())
+  notifiedAt DateTime?
+
+  @@index([status, productId])
+  @@index([createdAt])
+}
+
+// A durable queue for messages the bot must deliver to Telegram — written
+// inside the same transaction as the event that caused it (e.g. a receipt
+// being posted), so a crash between commit and send never loses the
+// notification; the bot polls this table instead of being called directly.
+model NotificationOutbox {
+  id               String           @id @default(uuid())
+  kind             String
+  payload          Json
+  targetType       OutboxTargetType
+  targetTelegramId BigInt?
+  status           OutboxStatus     @default(PENDING)
+  attempts         Int              @default(0)
+  createdAt        DateTime         @default(now())
+  sentAt           DateTime?
+  lastError        String?
+
+  @@index([status, createdAt])
 }

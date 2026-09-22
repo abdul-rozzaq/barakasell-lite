@@ -10,6 +10,12 @@ interface Settings {
   roundingMode: RoundingMode;
   lastClosedPeriodAt: string | null;
   storeName: string;
+  loyaltyEnabled: boolean;
+  loyaltyEarnPoints: number;
+  loyaltyEarnPerSum: string;
+  loyaltyPointValue: string;
+  loyaltyMinRedeemPoints: number;
+  loyaltyMaxRedeemPercent: number;
 }
 
 const ROUNDING_OPTIONS: { value: RoundingMode; label: string }[] = [
@@ -19,19 +25,43 @@ const ROUNDING_OPTIONS: { value: RoundingMode; label: string }[] = [
   { value: "R1000", label: "1000 so'mgacha" },
 ];
 
+type LoyaltyRuleField =
+  | "loyaltyEarnPoints"
+  | "loyaltyEarnPerSum"
+  | "loyaltyPointValue"
+  | "loyaltyMinRedeemPoints"
+  | "loyaltyMaxRedeemPercent";
+
+// PATCH sends plain numbers for the Decimal fields; GET returns them
+// serialized as strings (like every other Decimal in this API).
+type SettingsPatch = Partial<Omit<Settings, "loyaltyEarnPerSum" | "loyaltyPointValue">> & {
+  loyaltyEarnPerSum?: number;
+  loyaltyPointValue?: number;
+};
+
 export default function SettingsPage() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [loyaltyForm, setLoyaltyForm] = useState<Record<LoyaltyRuleField, string> | null>(null);
 
   useEffect(() => {
     api
       .get<Settings>("/settings")
-      .then(setSettings)
+      .then((s) => {
+        setSettings(s);
+        setLoyaltyForm({
+          loyaltyEarnPoints: String(s.loyaltyEarnPoints),
+          loyaltyEarnPerSum: String(s.loyaltyEarnPerSum),
+          loyaltyPointValue: String(s.loyaltyPointValue),
+          loyaltyMinRedeemPoints: String(s.loyaltyMinRedeemPoints),
+          loyaltyMaxRedeemPercent: String(s.loyaltyMaxRedeemPercent),
+        });
+      })
       .catch((err) => setError(err instanceof ApiError ? err.message : "Xatolik yuz berdi"));
   }, []);
 
-  async function update(patch: Partial<Pick<Settings, "allowNegativeStock" | "roundingMode">>) {
+  async function update(patch: SettingsPatch) {
     if (!settings) return;
     setSaving(true);
     setError(null);
@@ -43,6 +73,17 @@ export default function SettingsPage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function saveLoyaltyRules() {
+    if (!loyaltyForm) return;
+    await update({
+      loyaltyEarnPoints: Number(loyaltyForm.loyaltyEarnPoints),
+      loyaltyEarnPerSum: Number(loyaltyForm.loyaltyEarnPerSum),
+      loyaltyPointValue: Number(loyaltyForm.loyaltyPointValue),
+      loyaltyMinRedeemPoints: Number(loyaltyForm.loyaltyMinRedeemPoints),
+      loyaltyMaxRedeemPercent: Number(loyaltyForm.loyaltyMaxRedeemPercent),
+    });
   }
 
   if (error && !settings) {
@@ -95,6 +136,93 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      <div className="border border-divider bg-white p-5 mb-5">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <div className="font-medium">Loyalty (ball) dasturi</div>
+            <div className="text-sm text-text/60">Mijozlar xariddan ball to&apos;plab, keyin chegirmaga aylantirishi</div>
+          </div>
+          <button
+            onClick={() => update({ loyaltyEnabled: !settings.loyaltyEnabled })}
+            disabled={saving}
+            className={`h-7 w-12 relative transition-colors ${
+              settings.loyaltyEnabled ? "bg-accent" : "bg-divider"
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 h-6 w-6 bg-white transition-transform ${
+                settings.loyaltyEnabled ? "translate-x-5" : "translate-x-0.5"
+              }`}
+            />
+          </button>
+        </div>
+
+        {loyaltyForm && (
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <label className="flex flex-col gap-1">
+              Har necha so&apos;mga
+              <input
+                type="number"
+                className="h-9 px-2 border border-divider"
+                value={loyaltyForm.loyaltyEarnPerSum}
+                onChange={(e) => setLoyaltyForm({ ...loyaltyForm, loyaltyEarnPerSum: e.target.value })}
+              />
+            </label>
+            <label className="flex flex-col gap-1">
+              Necha ball beriladi
+              <input
+                type="number"
+                className="h-9 px-2 border border-divider"
+                value={loyaltyForm.loyaltyEarnPoints}
+                onChange={(e) => setLoyaltyForm({ ...loyaltyForm, loyaltyEarnPoints: e.target.value })}
+              />
+            </label>
+            <label className="flex flex-col gap-1">
+              1 ball necha so&apos;m (chegirmada)
+              <input
+                type="number"
+                className="h-9 px-2 border border-divider"
+                value={loyaltyForm.loyaltyPointValue}
+                onChange={(e) => setLoyaltyForm({ ...loyaltyForm, loyaltyPointValue: e.target.value })}
+              />
+            </label>
+            <label className="flex flex-col gap-1">
+              Kamida nechta ball ishlatish mumkin
+              <input
+                type="number"
+                className="h-9 px-2 border border-divider"
+                value={loyaltyForm.loyaltyMinRedeemPoints}
+                onChange={(e) => setLoyaltyForm({ ...loyaltyForm, loyaltyMinRedeemPoints: e.target.value })}
+              />
+            </label>
+            <label className="flex flex-col gap-1 col-span-2">
+              Sotuvning necha foizigacha ball bilan yopish mumkin
+              <input
+                type="number"
+                className="h-9 px-2 border border-divider max-w-40"
+                value={loyaltyForm.loyaltyMaxRedeemPercent}
+                onChange={(e) => setLoyaltyForm({ ...loyaltyForm, loyaltyMaxRedeemPercent: e.target.value })}
+              />
+            </label>
+          </div>
+        )}
+        <button
+          onClick={saveLoyaltyRules}
+          disabled={saving}
+          className="h-9 px-4 mt-3 bg-accent text-white text-sm disabled:opacity-40"
+        >
+          Qoidalarni saqlash
+        </button>
+      </div>
+
+      <div className="border border-divider bg-white p-5 mb-5">
+        <div className="font-medium mb-1">Telegram bot</div>
+        <div className="text-sm text-text/60 mb-3">
+          Botga ulanib, hisobotlarni va bildirishnomalarni Telegram orqali oling.
+        </div>
+        <TelegramLinkButton />
+      </div>
+
       <div className="border border-divider bg-white p-5">
         <div className="font-medium mb-1">Davrni yopish</div>
         <div className="text-sm text-text/60 mb-3">
@@ -108,6 +236,51 @@ export default function SettingsPage() {
       </div>
 
       {error && <div className="mt-4 text-sm text-[color:var(--color-error-text)]">{error}</div>}
+    </div>
+  );
+}
+
+function TelegramLinkButton() {
+  const [code, setCode] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function generate() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.post<{ code: string }>("/users/me/telegram-link-code");
+      setCode(res.code);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Xatolik yuz berdi");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (code) {
+    return (
+      <div className="text-sm">
+        <div className="mb-1">
+          Botga shu buyruqni yuboring (10 daqiqa amal qiladi):
+        </div>
+        <div className="font-condensed text-xl font-bold tracking-wider bg-surface inline-block px-3 py-1">
+          /link {code}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <button
+        onClick={generate}
+        disabled={loading}
+        className="h-9 px-4 bg-accent text-white text-sm disabled:opacity-40"
+      >
+        Telegram&apos;ga ulash
+      </button>
+      {error && <div className="mt-2 text-sm text-[color:var(--color-error-text)]">{error}</div>}
     </div>
   );
 }
