@@ -63,18 +63,45 @@ export function SalesTodayScreen() {
               <span className="font-condensed font-semibold">{sale.code}</span>
               <span className="text-sm text-text/60">{new Date(sale.soldAt).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })}</span>
               <span className="text-xs bg-surface px-2 py-0.5">{sale.tenders.map((t) => TENDER_LABEL[t.type]).join(' + ')}</span>
-              <span className="ml-auto font-condensed font-semibold">{formatSom(sale.total)}</span>
+              <span className="ml-auto flex flex-col items-end">
+                <span className="font-condensed font-semibold">{formatSom(sale.total)}</span>
+                {Number(sale.discountAmount) > 0 && (
+                  <span className="text-[10px] text-success-text">-{formatSom(sale.discountAmount)} chegirma</span>
+                )}
+              </span>
             </button>
             {expandedId === sale.id && (
               <div className="px-4 pb-4">
-                {sale.lines.map((line) => (
-                  <div key={line.id} className="flex justify-between text-sm py-1 text-text/70">
-                    <span>
-                      {line.productName} × {formatQty(line.qtyBase)} {line.unitLabel}
-                    </span>
-                    <span>{formatSom(line.lineTotal)}</span>
+                {sale.lines.map((line) => {
+                  const unitDiscount = Number(line.unitDiscountAmount);
+                  return (
+                    <div key={line.id} className="flex justify-between text-sm py-1 text-text/70">
+                      <span>
+                        {line.productName} × {formatQty(line.qtyBase)} {line.unitLabel}
+                        {unitDiscount > 0 && (
+                          <span className="text-success-text"> (-{formatSom(unitDiscount)}/dona)</span>
+                        )}
+                      </span>
+                      <span>{formatSom(line.lineTotal)}</span>
+                    </div>
+                  );
+                })}
+                <div className="flex flex-col gap-0.5 mt-2 pt-2 border-t border-divider text-sm">
+                  <div className="flex justify-between text-text/60">
+                    <span>Oraliq jami</span>
+                    <span>{formatSom(sale.subtotal)}</span>
                   </div>
-                ))}
+                  {Number(sale.discountAmount) > 0 && (
+                    <div className="flex justify-between text-success-text">
+                      <span>Umumiy chegirma</span>
+                      <span>-{formatSom(sale.discountAmount)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between font-semibold">
+                    <span>Jami</span>
+                    <span>{formatSom(sale.total)}</span>
+                  </div>
+                </div>
                 <button
                   type="button"
                   onClick={() => openReturnsFor(sale.code)}

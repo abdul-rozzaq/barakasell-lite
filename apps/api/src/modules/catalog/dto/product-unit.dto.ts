@@ -15,4 +15,13 @@ export class ProductUnitDto {
   @IsOptional()
   @IsBoolean()
   isBase?: boolean;
+
+  // Admin-only standing discount for this unit, as a flat sum (so'm) off
+  // the price above, applied automatically to every sale of it. See
+  // ProductUnit.discountAmount. The admin UI may let the user type a %
+  // instead, but converts it to a sum before sending this field.
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  discountAmount?: number;
 }

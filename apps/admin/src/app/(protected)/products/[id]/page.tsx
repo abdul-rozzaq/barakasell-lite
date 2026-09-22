@@ -10,6 +10,7 @@ interface ProductUnit {
   label: string;
   factor: string;
   price: string;
+  discountAmount: string;
   isBase: boolean;
 }
 
@@ -51,6 +52,24 @@ const TYPE_LABEL: Record<Movement["type"], string> = {
   RETURN: "Qaytarish",
   COUNT_ADJUST: "Inventarizatsiya",
 };
+
+// Discount is always SAVED as a flat sum (percent of an odd price produces
+// ugly fractional so'm amounts) — these just let the admin type either a %
+// or a sum in the form and keep both fields in sync against the price.
+function discountPctToSum(pct: string, priceStr: string): string {
+  const priceNum = parseMoney(priceStr);
+  const pctNum = Number(pct) || 0;
+  const sum = Math.round((priceNum * pctNum) / 100);
+  return sum > 0 ? formatMoneyInput(sum) : "";
+}
+
+function discountSumToPct(sumStr: string, priceStr: string): string {
+  const priceNum = parseMoney(priceStr);
+  const sumNum = parseMoney(sumStr);
+  if (priceNum <= 0 || sumNum <= 0) return "";
+  const pct = Math.round(((sumNum / priceNum) * 100) * 100) / 100;
+  return String(pct);
+}
 
 export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = usePromise(params);
@@ -165,6 +184,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
               <th className="px-4 py-2 font-medium">Birlik</th>
               <th className="px-4 py-2 font-medium">Koeffitsient</th>
               <th className="px-4 py-2 font-medium">Narxi</th>
+              <th className="px-4 py-2 font-medium">Chegirma</th>
               <th className="px-4 py-2 font-medium w-44">Amallar</th>
             </tr>
           </thead>
@@ -177,13 +197,16 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                 <td className="px-4 py-2">{u.isBase ? "asosiy birlik" : `= ${formatQty(u.factor)} dona`}</td>
                 <td className="px-4 py-2">{formatSom(u.price)}</td>
                 <td className="px-4 py-2">
+                  {Number(u.discountAmount) > 0 ? formatSom(u.discountAmount) : "—"}
+                </td>
+                <td className="px-4 py-2">
                   <div className="flex gap-3">
                     <button
                       onClick={() => setEditingUnit(u)}
                       disabled={unitBusyId === u.id}
                       className="text-accent hover:underline disabled:opacity-30"
                     >
-                      Narxni tahrirlash
+                      Tahrirlash
                     </button>
                     {!u.isBase && (
                       <button
@@ -442,8 +465,21 @@ function AddUnitModal({
   const [label, setLabel] = useState("");
   const [factor, setFactor] = useState("");
   const [price, setPrice] = useState("");
+  const [discountPct, setDiscountPct] = useState("");
+  const [discountAmount, setDiscountAmount] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  function handlePctChange(value: string) {
+    setDiscountPct(value);
+    setDiscountAmount(discountPctToSum(value, price));
+  }
+
+  function handleSumChange(value: string) {
+    const formatted = formatMoneyInput(value);
+    setDiscountAmount(formatted);
+    setDiscountPct(discountSumToPct(formatted, price));
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -454,6 +490,7 @@ function AddUnitModal({
         label,
         factor: Number(factor),
         price: parseMoney(price),
+        discountAmount: discountAmount ? parseMoney(discountAmount) : undefined,
       });
       onAdded();
     } catch (err) {
@@ -499,8 +536,36 @@ function AddUnitModal({
           onChange={(e) => setPrice(formatMoneyInput(e.target.value))}
           placeholder="0"
           required
-          className="w-full h-10 px-3 border border-divider mb-4 outline-none focus:border-accent"
+          className="w-full h-10 px-3 border border-divider mb-3 outline-none focus:border-accent"
         />
+
+        <label className="block text-sm mb-1 text-text/70">Chegirma (ixtiyoriy)</label>
+        <div className="flex gap-2 mb-4">
+          <div className="flex-1">
+            <input
+              type="number"
+              value={discountPct}
+              onChange={(e) => handlePctChange(e.target.value)}
+              placeholder="0 %"
+              min={0}
+              max={100}
+              step="any"
+              className="w-full h-10 px-3 border border-divider outline-none focus:border-accent"
+            />
+            <span className="text-xs text-text/50">foizda</span>
+          </div>
+          <div className="flex-1">
+            <input
+              type="text"
+              inputMode="numeric"
+              value={discountAmount}
+              onChange={(e) => handleSumChange(e.target.value)}
+              placeholder="0 so'm"
+              className="w-full h-10 px-3 border border-divider outline-none focus:border-accent"
+            />
+            <span className="text-xs text-text/50">so&apos;mda</span>
+          </div>
+        </div>
 
         {error && (
           <div className="mb-4 border border-[color:var(--color-error-border)] bg-[color:var(--color-error-bg)] px-3 py-2 text-sm text-[color:var(--color-error-text)]">
@@ -569,15 +634,33 @@ function EditUnitPriceModal({
   onSaved: () => void;
 }) {
   const [price, setPrice] = useState(formatMoneyInput(unit.price));
+  const [discountAmount, setDiscountAmount] = useState(formatMoneyInput(unit.discountAmount));
+  const [discountPct, setDiscountPct] = useState(
+    discountSumToPct(unit.discountAmount, unit.price),
+  );
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  function handlePctChange(value: string) {
+    setDiscountPct(value);
+    setDiscountAmount(discountPctToSum(value, price));
+  }
+
+  function handleSumChange(value: string) {
+    const formatted = formatMoneyInput(value);
+    setDiscountAmount(formatted);
+    setDiscountPct(discountSumToPct(formatted, price));
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
     try {
-      await api.patch(`/product-units/${unit.id}`, { price: parseMoney(price) });
+      await api.patch(`/product-units/${unit.id}`, {
+        price: parseMoney(price),
+        discountAmount: discountAmount === "" ? 0 : parseMoney(discountAmount),
+      });
       onSaved();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Xatolik yuz berdi");
@@ -600,8 +683,36 @@ function EditUnitPriceModal({
           placeholder="0"
           required
           autoFocus
-          className="w-full h-10 px-3 border border-divider mb-4 outline-none focus:border-accent"
+          className="w-full h-10 px-3 border border-divider mb-3 outline-none focus:border-accent"
         />
+
+        <label className="block text-sm mb-1 text-text/70">Chegirma (ixtiyoriy)</label>
+        <div className="flex gap-2 mb-4">
+          <div className="flex-1">
+            <input
+              type="number"
+              value={discountPct}
+              onChange={(e) => handlePctChange(e.target.value)}
+              placeholder="0 %"
+              min={0}
+              max={100}
+              step="any"
+              className="w-full h-10 px-3 border border-divider outline-none focus:border-accent"
+            />
+            <span className="text-xs text-text/50">foizda</span>
+          </div>
+          <div className="flex-1">
+            <input
+              type="text"
+              inputMode="numeric"
+              value={discountAmount}
+              onChange={(e) => handleSumChange(e.target.value)}
+              placeholder="0 so'm"
+              className="w-full h-10 px-3 border border-divider outline-none focus:border-accent"
+            />
+            <span className="text-xs text-text/50">so&apos;mda</span>
+          </div>
+        </div>
 
         {error && (
           <div className="mb-4 border border-[color:var(--color-error-border)] bg-[color:var(--color-error-bg)] px-3 py-2 text-sm text-[color:var(--color-error-text)]">

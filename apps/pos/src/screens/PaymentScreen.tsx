@@ -16,12 +16,22 @@ export function PaymentScreen() {
   const [mode, setMode] = useState<'mixed' | 'credit'>('mixed');
   const [amounts, setAmounts] = useState<Record<TenderType, number>>({ CASH: 0, CARD: 0, CLICK: 0, CREDIT: 0 });
   const [editingTender, setEditingTender] = useState<TenderType | null>(null);
+  const [editingDiscount, setEditingDiscount] = useState(false);
+  const [discountAmount, setDiscountAmount] = useState(0);
   const [customerQuery, setCustomerQuery] = useState('');
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const total = useMemo(() => state.cart.reduce((acc, l) => acc + l.qtyInUnit * l.unitPrice, 0), [state.cart]);
+  const subtotal = useMemo(
+    () =>
+      state.cart.reduce(
+        (acc, l) => acc + l.qtyInUnit * Math.max(0, l.unitPrice - l.discountAmount),
+        0,
+      ),
+    [state.cart],
+  );
+  const total = Math.max(0, subtotal - discountAmount);
   const itemCount = state.cart.length;
 
   useEffect(() => {
@@ -49,7 +59,7 @@ export function PaymentScreen() {
         mode === 'mixed'
           ? CASH_TENDERS.filter((t) => amounts[t.type] > 0).map((t) => ({ type: t.type, amount: amounts[t.type] }))
           : [{ type: 'CREDIT', amount: total }];
-      await checkout(tenders);
+      await checkout(tenders, discountAmount);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Sotuvni yakunlab bo'lmadi");
     } finally {
@@ -65,8 +75,20 @@ export function PaymentScreen() {
         </button>
         <div className="p-4 bg-surface">
           <div className="text-sm text-text/60">{itemCount} tovar</div>
+          {discountAmount > 0 && (
+            <div className="text-sm text-text/60 line-through">{formatSom(subtotal)}</div>
+          )}
           <div className="font-condensed text-3xl font-bold mt-1">{formatSom(total)}</div>
         </div>
+
+        <button
+          type="button"
+          onClick={() => setEditingDiscount(true)}
+          className="w-full h-11 mt-2 px-3 border border-divider text-left flex items-center justify-between"
+        >
+          <span className="text-sm font-condensed font-semibold">Chegirma</span>
+          <span className="font-condensed">{formatSom(discountAmount)}</span>
+        </button>
       </div>
 
       <div className="flex-1 p-4 flex flex-col gap-4">
@@ -171,6 +193,21 @@ export function PaymentScreen() {
             setEditingTender(null);
           }}
           onCancel={() => setEditingTender(null)}
+        />
+      )}
+
+      {editingDiscount && (
+        <NumericPadModal
+          title="Chegirma (so'm)"
+          initialValue={discountAmount}
+          fullAmount={subtotal}
+          fullAmountLabel="To'liq chegirma"
+          allowDecimal={false}
+          onConfirm={(value) => {
+            setDiscountAmount(Math.min(value, subtotal));
+            setEditingDiscount(false);
+          }}
+          onCancel={() => setEditingDiscount(false)}
         />
       )}
     </div>

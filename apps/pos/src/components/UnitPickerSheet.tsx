@@ -24,7 +24,13 @@ export function UnitPickerSheet({ product, onSelect, onClose }: UnitPickerSheetP
               className="flex items-center justify-between h-14 px-4 border border-divider text-left"
             >
               <span>{unit.label}</span>
-              <span className="font-condensed font-semibold">{formatSom(unit.price)}</span>
+              {Number(unit.discountAmount) > 0 ? (
+                <span className="font-condensed font-semibold text-success-text">
+                  {formatSom(Math.max(0, Number(unit.price) - Number(unit.discountAmount)))}
+                </span>
+              ) : (
+                <span className="font-condensed font-semibold">{formatSom(unit.price)}</span>
+              )}
             </button>
           ))}
         </div>

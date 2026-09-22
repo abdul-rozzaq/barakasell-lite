@@ -115,8 +115,12 @@ export class SalesService {
         new Prisma.Decimal(0),
       );
 
-      const discountPct = new Prisma.Decimal(dto.discountPct ?? 0);
-      const discountAmount = subtotal.times(discountPct).div(100);
+      const discountAmount = new Prisma.Decimal(dto.discountAmount ?? 0);
+      if (discountAmount.gt(subtotal)) {
+        throw new BadRequestException(
+          "Chegirma summasi jami summadan katta bo'lishi mumkin emas",
+        );
+      }
       const { rounded: total, adj: roundingAdj } = applyRounding(
         subtotal.minus(discountAmount),
         settings.roundingMode,
@@ -141,7 +145,6 @@ export class SalesService {
           cashierId: user.sub,
           customerId: dto.customerId,
           subtotal,
-          discountPct,
           discountAmount,
           roundingAdj,
           total,
@@ -175,7 +178,7 @@ export class SalesService {
             qtyInUnit: line.qtyInUnit,
             qtyBase: line.qtyBase,
             unitPrice: line.unitPrice,
-            discountPct: line.discountPct,
+            unitDiscountAmount: line.unitDiscountAmount,
             lineTotal: line.lineTotal,
             unitCostBase: entry.unitCost,
             lineCost,
@@ -375,9 +378,17 @@ export class SalesService {
         line.unitPrice !== undefined
           ? new Prisma.Decimal(line.unitPrice)
           : unit.price;
-      const discountPct = new Prisma.Decimal(line.discountPct ?? 0);
-      const gross = qtyInUnit.times(unitPrice);
-      const lineTotal = gross.minus(gross.times(discountPct).div(100));
+      // Standing discount is set by an admin on the product itself, not by
+      // the cashier per sale — see ProductUnit.discountAmount. It's a flat
+      // sum off THIS unit's price, clamped so the effective price never
+      // goes negative (e.g. if the price was lowered after the discount
+      // was configured).
+      const effectiveUnitPrice = Prisma.Decimal.max(
+        0,
+        unitPrice.minus(unit.discountAmount),
+      );
+      const unitDiscountAmount = unitPrice.minus(effectiveUnitPrice);
+      const lineTotal = qtyInUnit.times(effectiveUnitPrice);
 
       resolved.push({
         productId: line.productId,
@@ -387,7 +398,7 @@ export class SalesService {
         qtyInUnit,
         qtyBase,
         unitPrice,
-        discountPct,
+        unitDiscountAmount,
         lineTotal,
       });
     }

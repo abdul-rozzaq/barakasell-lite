@@ -90,7 +90,11 @@ export function SaleScreen() {
   }
 
   const subtotal = useMemo(
-    () => state.cart.reduce((acc, l) => acc + l.qtyInUnit * l.unitPrice, 0),
+    () =>
+      state.cart.reduce(
+        (acc, l) => acc + l.qtyInUnit * Math.max(0, l.unitPrice - l.discountAmount),
+        0,
+      ),
     [state.cart],
   );
 
@@ -111,6 +115,7 @@ export function SaleScreen() {
       unitFactor: Number(unit.factor),
       qtyInUnit: 1,
       unitPrice: Number(unit.price),
+      discountAmount: Number(unit.discountAmount),
     });
     setUnitPickerFor(null);
   }
@@ -185,7 +190,16 @@ export function SaleScreen() {
                   ) : stock < LOW_STOCK_THRESHOLD ? (
                     <span className="text-xs border border-warning-border text-warning-text px-1">Kam qoldi</span>
                   ) : null}
-                  <span className="mt-auto font-condensed font-bold">{baseUnit ? formatSom(baseUnit.price) : ''}</span>
+                  {baseUnit && Number(baseUnit.discountAmount) > 0 ? (
+                    <span className="mt-auto">
+                      <span className="text-xs text-text/50 line-through mr-1">{formatSom(baseUnit.price)}</span>
+                      <span className="font-condensed font-bold text-success-text">
+                        {formatSom(Math.max(0, Number(baseUnit.price) - Number(baseUnit.discountAmount)))}
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="mt-auto font-condensed font-bold">{baseUnit ? formatSom(baseUnit.price) : ''}</span>
+                  )}
                 </button>
               );
             })}
@@ -227,7 +241,12 @@ export function SaleScreen() {
                     </button>
                   </div>
                   <div className="w-20 text-right font-condensed font-semibold text-sm shrink-0">
-                    {formatSom(line.qtyInUnit * line.unitPrice)}
+                    {formatSom(line.qtyInUnit * Math.max(0, line.unitPrice - line.discountAmount))}
+                    {line.discountAmount > 0 && (
+                      <div className="text-[10px] text-success-text font-normal">
+                        -{formatSom(line.discountAmount)}
+                      </div>
+                    )}
                   </div>
                   <button type="button" onClick={() => removeCartLine(index)} className="text-error-text px-1 shrink-0">
                     ✕

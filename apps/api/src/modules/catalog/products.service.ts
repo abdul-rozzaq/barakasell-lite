@@ -121,6 +121,7 @@ export class ProductsService {
 
   async create(dto: CreateProductDto) {
     this.assertExactlyOneBaseUnit(dto.units);
+    dto.units.forEach((u) => this.assertDiscountWithinPrice(u.price, u.discountAmount));
 
     try {
       return await this.prisma.$transaction(async (tx) => {
@@ -139,6 +140,7 @@ export class ProductsService {
             label: u.label,
             factor: u.factor,
             price: u.price,
+            discountAmount: u.discountAmount ?? 0,
             isBase: Boolean(u.isBase),
             sortOrder: index,
           })),
@@ -184,10 +186,18 @@ export class ProductsService {
         'Baza birlik faqat tovar yaratishda belgilanadi',
       );
     }
+    this.assertDiscountWithinPrice(dto.price, dto.discountAmount);
     const count = await this.prisma.productUnit.count({ where: { productId } });
     try {
       return await this.prisma.productUnit.create({
-        data: { productId, label: dto.label, factor: dto.factor, price: dto.price, sortOrder: count },
+        data: {
+          productId,
+          label: dto.label,
+          factor: dto.factor,
+          price: dto.price,
+          discountAmount: dto.discountAmount ?? 0,
+          sortOrder: count,
+        },
       });
     } catch (err) {
       throw this.mapUniqueViolation(err);
@@ -200,6 +210,10 @@ export class ProductsService {
     if (unit.isBase && dto.factor !== undefined && Number(dto.factor) !== 1) {
       throw new BadRequestException('Baza birlik factor qiymati 1 bo\'lishi shart');
     }
+    this.assertDiscountWithinPrice(
+      dto.price ?? Number(unit.price),
+      dto.discountAmount ?? Number(unit.discountAmount),
+    );
     try {
       return await this.prisma.productUnit.update({ where: { id: unitId }, data: dto });
     } catch (err) {
@@ -257,6 +271,14 @@ export class ProductsService {
     const barcode = await this.prisma.barcode.findUnique({ where: { id: barcodeId } });
     if (!barcode) throw new NotFoundException('Barcode topilmadi');
     await this.prisma.barcode.delete({ where: { id: barcodeId } });
+  }
+
+  private assertDiscountWithinPrice(price: number, discountAmount: number | undefined) {
+    if (discountAmount !== undefined && discountAmount > price) {
+      throw new BadRequestException(
+        "Chegirma summasi narxdan katta bo'lishi mumkin emas",
+      );
+    }
   }
 
   private assertExactlyOneBaseUnit(units: ProductUnitDto[]) {

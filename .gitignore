@@ -11,3 +11,6 @@ build/
 .turbo/
 coverage/
 apps/api/src/generated/
+
+backups/
+!backups/.gitkeep

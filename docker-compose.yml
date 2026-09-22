@@ -13,46 +13,47 @@ services:
       - "${DB_PORT}:5432"
     volumes:
       - barakasell_db_data:/var/lib/postgresql/data
+      - ./backups/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 10
 
-  api:
-    build:
-      context: ./apps/api
-    restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      DATABASE_URL: ${DATABASE_URL}
-      JWT_SECRET: ${JWT_SECRET}
-      CORS_ORIGINS: ${CORS_ORIGINS}
-      PORT: ${API_PORT}
-    ports:
-      - "${API_PORT}:${API_PORT}"
+  # api:
+  #   build:
+  #     context: ./apps/api
+  #   restart: unless-stopped
+  #   depends_on:
+  #     db:
+  #       condition: service_healthy
+  #   environment:
+  #     DATABASE_URL: ${DATABASE_URL}
+  #     JWT_SECRET: ${JWT_SECRET}
+  #     CORS_ORIGINS: ${CORS_ORIGINS}
+  #     PORT: ${API_PORT}
+  #   ports:
+  #     - "${API_PORT}:${API_PORT}"
 
-  admin:
-    build:
-      context: ./apps/admin
-    restart: unless-stopped
-    depends_on:
-      - api
-    environment:
-      PORT: ${ADMIN_PORT}
-    ports:
-      - "${ADMIN_PORT}:${ADMIN_PORT}"
+  # admin:
+  #   build:
+  #     context: ./apps/admin
+  #   restart: unless-stopped
+  #   depends_on:
+  #     - api
+  #   environment:
+  #     PORT: ${ADMIN_PORT}
+  #   ports:
+  #     - "${ADMIN_PORT}:${ADMIN_PORT}"
 
-  pos:
-    build:
-      context: ./apps/pos
-    restart: unless-stopped
-    depends_on:
-      - api
-    ports:
-      - "${POS_PORT}:3000"
+  # pos:
+  #   build:
+  #     context: ./apps/pos
+  #   restart: unless-stopped
+  #   depends_on:
+  #     - api
+  #   ports:
+  #     - "${POS_PORT}:3000"
 
 volumes:
   barakasell_db_data:

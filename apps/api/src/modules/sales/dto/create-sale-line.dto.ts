@@ -1,4 +1,4 @@
-import { IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 export class CreateSaleLineDto {
   @IsString()
@@ -19,9 +19,7 @@ export class CreateSaleLineDto {
   @Min(0)
   unitPrice?: number;
 
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  @Max(100)
-  discountPct?: number;
+  // No client-supplied per-line discount — that's ProductUnit.discountAmount,
+  // an admin-only standing discount applied automatically in
+  // SalesService#resolveLines. A cashier cannot discount a single line.
 }

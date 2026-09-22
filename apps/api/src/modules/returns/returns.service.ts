@@ -121,7 +121,8 @@ export class ReturnsService {
           lineTotal: saleLine.lineTotal,
           originalQtyBase: saleLine.qtyBase,
           returnQtyBase: qtyBase,
-          saleDiscountPct: sale.discountPct,
+          saleSubtotal: sale.subtotal,
+          saleDiscountAmount: sale.discountAmount,
         });
         refundTotal = refundTotal.plus(refundAmount);
         costReversed = costReversed.plus(lineCost);

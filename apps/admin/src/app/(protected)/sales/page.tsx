@@ -10,6 +10,7 @@ interface SaleLine {
   qtyInUnit: string;
   unitLabel: string;
   unitPrice: string;
+  unitDiscountAmount: string;
   lineTotal: string;
 }
 
@@ -22,6 +23,8 @@ interface SaleRow {
   id: string;
   code: string;
   status: "COMPLETED" | "VOIDED";
+  subtotal: string;
+  discountAmount: string;
   total: string;
   soldAt: string;
   voidedAt: string | null;
@@ -264,6 +267,11 @@ export default function SalesPage() {
                     </td>
                     <td className="px-4 py-2.5 text-right font-condensed font-medium">
                       {formatSom(sale.total)}
+                      {Number(sale.discountAmount) > 0 && (
+                        <div className="text-xs font-normal text-[color:var(--color-success-text)]">
+                          -{formatSom(sale.discountAmount)} chegirma
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-2.5">
                       {sale.status === "COMPLETED" ? (
@@ -306,20 +314,57 @@ export default function SalesPage() {
                             </tr>
                           </thead>
                           <tbody>
-                            {sale.lines.map((line) => (
-                              <tr key={line.id}>
-                                <td className="py-0.5">{line.productName}</td>
-                                <td className="py-0.5 text-right">
-                                  {Number(line.qtyInUnit)} {line.unitLabel}
-                                </td>
-                                <td className="py-0.5 text-right">{formatSom(line.unitPrice)}</td>
-                                <td className="py-0.5 text-right font-medium">
-                                  {formatSom(line.lineTotal)}
-                                </td>
-                              </tr>
-                            ))}
+                            {sale.lines.map((line) => {
+                              const unitDiscount = Number(line.unitDiscountAmount);
+                              return (
+                                <tr key={line.id}>
+                                  <td className="py-0.5">
+                                    {line.productName}
+                                    {unitDiscount > 0 && (
+                                      <span className="ml-1.5 text-[color:var(--color-success-text)]">
+                                        (-{formatSom(unitDiscount)}/dona chegirma)
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="py-0.5 text-right">
+                                    {Number(line.qtyInUnit)} {line.unitLabel}
+                                  </td>
+                                  <td className="py-0.5 text-right">
+                                    {unitDiscount > 0 ? (
+                                      <>
+                                        <span className="line-through text-text/40 mr-1">
+                                          {formatSom(line.unitPrice)}
+                                        </span>
+                                        {formatSom(Number(line.unitPrice) - unitDiscount)}
+                                      </>
+                                    ) : (
+                                      formatSom(line.unitPrice)
+                                    )}
+                                  </td>
+                                  <td className="py-0.5 text-right font-medium">
+                                    {formatSom(line.lineTotal)}
+                                  </td>
+                                </tr>
+                              );
+                            })}
                           </tbody>
                         </table>
+                        <div className="flex flex-col gap-1 text-xs text-text/60 mb-3 max-w-52">
+                          <div className="flex justify-between">
+                            <span>Oraliq jami</span>
+                            <span>{formatSom(sale.subtotal)}</span>
+                          </div>
+                          {Number(sale.discountAmount) > 0 && (
+                            <div className="flex justify-between text-[color:var(--color-success-text)]">
+                              <span>Umumiy chegirma</span>
+                              <span>-{formatSom(sale.discountAmount)}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between font-medium text-text">
+                            <span>Jami</span>
+                            <span>{formatSom(sale.total)}</span>
+                          </div>
+                        </div>
                         <div className="flex gap-6 text-xs text-text/60">
                           {sale.tenders.map((t, i) => (
                             <span key={i}>

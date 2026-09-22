@@ -20,6 +20,7 @@ export interface ProductUnit {
   label: string;
   factor: string;
   price: string;
+  discountAmount: string;
   isBase: boolean;
 }
 
@@ -45,6 +46,7 @@ export interface CartLine {
   unitFactor: number;
   qtyInUnit: number;
   unitPrice: number;
+  discountAmount: number;
 }
 
 export type TenderType = 'CASH' | 'CARD' | 'CLICK' | 'CREDIT';
@@ -86,6 +88,7 @@ export interface SaleLineDetail {
   unitLabel: string;
   qtyBase: string;
   unitPrice: string;
+  unitDiscountAmount: string;
   lineTotal: string;
   returnedQtyBase: string;
 }
@@ -95,7 +98,8 @@ export interface SaleDetail {
   code: string;
   soldAt: string;
   total: string;
-  discountPct: string;
+  subtotal: string;
+  discountAmount: string;
   lines: SaleLineDetail[];
   tenders: { type: TenderType; amount: string }[];
 }
@@ -111,6 +115,7 @@ export interface SalePayload {
   lines: SaleLinePayload[];
   tenders: TenderDraft[];
   customerId?: string;
+  discountAmount?: number;
 }
 
 export interface SaleResult {

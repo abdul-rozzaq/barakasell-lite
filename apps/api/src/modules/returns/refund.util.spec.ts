@@ -10,7 +10,8 @@ describe('computeRefund', () => {
       lineTotal: D(50000),
       originalQtyBase: D(10),
       returnQtyBase: D(10),
-      saleDiscountPct: D(0),
+      saleSubtotal: D(50000),
+      saleDiscountAmount: D(0),
     });
     expect(r.toString()).toBe('50000');
   });
@@ -20,7 +21,8 @@ describe('computeRefund', () => {
       lineTotal: D(50000),
       originalQtyBase: D(10),
       returnQtyBase: D(4),
-      saleDiscountPct: D(0),
+      saleSubtotal: D(50000),
+      saleDiscountAmount: D(0),
     });
     expect(r.toString()).toBe('20000');
   });
@@ -30,24 +32,27 @@ describe('computeRefund', () => {
       lineTotal: D(100000),
       originalQtyBase: D(10),
       returnQtyBase: D(10),
-      saleDiscountPct: D(10),
+      saleSubtotal: D(100000),
+      saleDiscountAmount: D(10000),
     });
     expect(r.toString()).toBe('90000');
   });
 
   it('total refund across all returned lines never exceeds the sale total when discount applies', () => {
-    // Two lines summing to a 200000 subtotal, sale.total=180000 (10% discount).
+    // Two lines summing to a 200000 subtotal, sale.total=180000 (10000 flat discount each).
     const line1 = computeRefund({
       lineTotal: D(100000),
       originalQtyBase: D(5),
       returnQtyBase: D(5),
-      saleDiscountPct: D(10),
+      saleSubtotal: D(200000),
+      saleDiscountAmount: D(20000),
     });
     const line2 = computeRefund({
       lineTotal: D(100000),
       originalQtyBase: D(5),
       returnQtyBase: D(5),
-      saleDiscountPct: D(10),
+      saleSubtotal: D(200000),
+      saleDiscountAmount: D(20000),
     });
     expect(line1.plus(line2).toString()).toBe('180000');
   });
@@ -57,7 +62,8 @@ describe('computeRefund', () => {
       lineTotal: D(10000),
       originalQtyBase: D(3),
       returnQtyBase: D(1),
-      saleDiscountPct: D(0),
+      saleSubtotal: D(10000),
+      saleDiscountAmount: D(0),
     });
     expect(r.toString()).toBe('3333.33');
   });

@@ -70,7 +70,7 @@ interface AppContextValue {
   updateCartLineQty: (index: number, qtyInUnit: number) => void;
   removeCartLine: (index: number) => void;
   setCustomer: (customer: Customer | null) => void;
-  checkout: (tenders: TenderDraft[]) => Promise<void>;
+  checkout: (tenders: TenderDraft[], discountAmount: number) => Promise<void>;
   startNewSale: () => void;
   goToPayment: () => void;
   backToSale: () => void;
@@ -227,7 +227,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const checkout = useCallback(
-    async (tenders: TenderDraft[]) => {
+    async (tenders: TenderDraft[], discountAmount: number) => {
       const payload: SalePayload = {
         lines: state.cart.map((l) => ({
           productId: l.productId,
@@ -237,6 +237,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         })),
         tenders,
         customerId: state.customer?.id,
+        discountAmount: discountAmount > 0 ? discountAmount : undefined,
       };
       const idempotencyKey = newIdempotencyKey();
 

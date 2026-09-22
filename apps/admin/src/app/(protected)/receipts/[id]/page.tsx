@@ -156,7 +156,10 @@ export default function ReceiptDocPage({ params }: { params: Promise<{ id: strin
     }
   }
 
-  const total = lines.reduce((acc, l) => acc + Number(l.qtyInUnit || 0) * parseMoney(l.unitCostPack || 0), 0);
+  const total = lines.reduce(
+    (acc, l) => acc + Number(l.qtyInUnit || 0) * parseMoney(l.unitCostPack || 0),
+    0,
+  );
   const isDraft = isNew || receipt?.status === "DRAFT";
   const isPosted = receipt?.status === "POSTED";
 
@@ -230,7 +233,7 @@ export default function ReceiptDocPage({ params }: { params: Promise<{ id: strin
                         unitLabel: p?.units[0]?.label ?? "",
                       });
                     }}
-                    className="h-9 px-2 border border-divider min-w-[160px]"
+                    className="h-9 px-2 border border-divider min-w-40"
                   >
                     {products.map((p) => (
                       <option key={p.id} value={p.id}>
@@ -278,18 +281,22 @@ export default function ReceiptDocPage({ params }: { params: Promise<{ id: strin
                     type="text"
                     inputMode="numeric"
                     value={line.unitCostPack}
-                    onChange={(e) => updateLine(i, { unitCostPack: formatMoneyInput(e.target.value) })}
+                    onChange={(e) =>
+                      updateLine(i, { unitCostPack: formatMoneyInput(e.target.value) })
+                    }
                     placeholder="0"
                     className="h-9 px-2 border border-divider w-28"
                   />
                 ) : (
-                  formatSom(line.unitCostPack)
+                  formatSom(parseMoney(line.unitCostPack))
                 )}
               </td>
-              <td className="px-3 py-2">{formatSom(Number(line.qtyInUnit || 0) * parseMoney(line.unitCostPack || 0))}</td>
+              <td className="px-3 py-2">
+                {formatSom(Number(line.qtyInUnit || 0) * parseMoney(line.unitCostPack || 0))}
+              </td>
               {isDraft && (
                 <td className="px-3 py-2">
-                  <button onClick={() => removeLine(i)} className="text-[color:var(--color-error-text)]">
+                  <button onClick={() => removeLine(i)} className="text-error-text">
                     ✕
                   </button>
                 </td>
@@ -308,7 +315,7 @@ export default function ReceiptDocPage({ params }: { params: Promise<{ id: strin
       <div className="font-condensed text-lg font-bold mb-6">Jami: {formatSom(total)}</div>
 
       {error && (
-        <div className="mb-4 border border-[color:var(--color-error-border)] bg-[color:var(--color-error-bg)] px-3 py-2 text-sm text-[color:var(--color-error-text)]">
+        <div className="mb-4 border border-error-border bg-error-bg px-3 py-2 text-sm text-error-text">
           {error}
         </div>
       )}
@@ -332,7 +339,7 @@ export default function ReceiptDocPage({ params }: { params: Promise<{ id: strin
             Tasdiqlash
           </button>
         )}
-        {isPosted && <span className="text-[color:var(--color-success-text)] text-sm self-center">Tasdiqlangan</span>}
+        {isPosted && <span className="text-success-text text-sm self-center">Tasdiqlangan</span>}
       </div>
     </div>
   );

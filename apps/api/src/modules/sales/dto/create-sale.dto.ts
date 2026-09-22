@@ -4,7 +4,6 @@ import {
   IsDateString,
   IsOptional,
   IsString,
-  Max,
   Min,
   IsNumber,
   ValidateNested,
@@ -30,11 +29,13 @@ export class CreateSaleDto {
   @IsString()
   customerId?: string;
 
+  // Overall discount for the whole sale, as a flat sum (so'm), entered by
+  // the cashier at checkout — not a percentage. Validated against subtotal
+  // in SalesService, since the max depends on the resolved line totals.
   @IsOptional()
   @IsNumber()
   @Min(0)
-  @Max(100)
-  discountPct?: number;
+  discountAmount?: number;
 
   @IsOptional()
   @IsDateString()

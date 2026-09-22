@@ -36,7 +36,9 @@ export function ReturnsScreen() {
       const qty = qtyByLine[line.id] ?? 0;
       const available = Number(line.qtyBase) - Number(line.returnedQtyBase);
       const ratio = available > 0 ? qty / Number(line.qtyBase) : 0;
-      return acc + ratio * Number(line.lineTotal) * (1 - Number(sale.discountPct) / 100);
+      const subtotal = Number(sale.subtotal);
+      const discountFactor = subtotal > 0 ? 1 - Number(sale.discountAmount) / subtotal : 1;
+      return acc + ratio * Number(line.lineTotal) * discountFactor;
     }, 0) ?? 0;
   const hasSelection = Object.values(qtyByLine).some((q) => q > 0);
 
