@@ -118,6 +118,7 @@ export interface SalePayload {
   tenders: TenderDraft[];
   customerId?: string;
   discountAmount?: number;
+  redeemPoints?: number;
 }
 
 export interface SaleResult {

@@ -1,18 +1,12 @@
-import { ApiClient } from '../../api/api.client.js';
+import { BotService } from '../../../bot/bot.service.js';
 import type { ToolSet } from '../tool.types.js';
-
-interface ProductSearchResult {
-  name: string;
-  price: string | null;
-  inStock: boolean;
-}
 
 // Read-only except for request_product: the agent never places a sale,
 // applies a discount, or moves money — those stay cashier/PIN-gated
 // actions in the physical store. request_product only records a wish; the
 // customer is notified automatically once a matching receipt is posted
 // (see ReceiptsService.post() -> WaitlistService.notifyArrivals()).
-export function customerTools(api: ApiClient, customerId: string): ToolSet {
+export function customerTools(botService: BotService, customerId: string): ToolSet {
   const defs: ToolSet['defs'] = [
     {
       type: 'function',
@@ -79,29 +73,27 @@ export function customerTools(api: ApiClient, customerId: string): ToolSet {
   const handlers: ToolSet['handlers'] = {
     async search_products(args) {
       const query = String(args.query ?? '');
-      const items = await api.get<ProductSearchResult[]>(
-        `/bot/products/search?q=${encodeURIComponent(query)}`,
-      );
+      const items = await botService.searchProducts(query);
       return items.map((i) => ({ name: i.name, price: i.price, inStock: i.inStock }));
     },
 
     async get_loyalty_balance() {
-      const loyalty = await api.get<{ pointsBalance: number }>(`/bot/customers/${customerId}/loyalty`);
+      const loyalty = await botService.loyalty(customerId);
       return { pointsBalance: loyalty.pointsBalance };
     },
 
     async get_my_debt() {
-      return api.get<{ debtBalance: string }>(`/bot/customers/${customerId}/debt`);
+      return botService.debt(customerId);
     },
 
     async get_my_purchases(args) {
       const limit = typeof args.limit === 'number' ? args.limit : 10;
-      return api.get(`/bot/customers/${customerId}/purchases?limit=${limit}`);
+      return botService.purchases(customerId, limit);
     },
 
     async request_product(args) {
       const rawText = String(args.productName ?? '');
-      await api.post(`/bot/customers/${customerId}/waitlist`, { rawText });
+      await botService.createWaitlistEntry(customerId, { rawText });
       return { ok: true, message: "So'rovingiz qabul qilindi, tovar kelganda xabar beramiz." };
     },
   };

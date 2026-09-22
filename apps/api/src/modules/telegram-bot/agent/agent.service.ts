@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type OpenAI from 'openai';
 import type { ChatCompletionMessageParam, ChatCompletionTool } from 'openai/resources/index.js';
-import { ApiClient } from '../api/api.client.js';
+import { BotService } from '../../bot/bot.service.js';
 import { DEEPSEEK_CLIENT } from './deepseek.provider.js';
 import { customerTools } from './tools/customer.tools.js';
 import { ownerTools } from './tools/owner.tools.js';
@@ -13,17 +13,33 @@ interface ConversationEntry {
   expiresAt: number;
 }
 
+// Sent with parse_mode: 'HTML' (see flows/agent.flow.ts) — Telegram's HTML
+// subset only understands a handful of tags and no Markdown at all. Spelling
+// this out here instead of leaving it to the model's default guess is what
+// makes ctx.reply(answer, {parse_mode:'HTML'}) actually render instead of
+// throwing a "can't parse entities" error or showing literal ** asterisks.
+const TELEGRAM_HTML_FORMATTING =
+  "Javobingizni Telegram HTML formatida yozing (parse_mode=HTML bilan yuboriladi), Markdown EMAS — ya'ni **qalin** " +
+  "yoki *kursiv* yozmang, ular oddiy yulduzcha bo'lib ko'rinadi. Faqat quyidagi teglardan foydalaning: " +
+  "<b>qalin</b>, <i>kursiv</i>, <code>kod/raqam</code>, <a href=\"URL\">havola</a>. Sarlavha, ro'yxat (<ul>/<li>) yoki " +
+  "jadval teglari Telegram'da ISHLAMAYDI — ro'yxat kerak bo'lsa har qatorni yangi qatorga \"• \" bilan yozing. " +
+  "Matn ichida oddiy \"<\", \">\" yoki \"&\" belgisi ishlatmang (masalan \"5 dan katta\" deng, \"5 dan >\" demang) — " +
+  "aks holda xabar yuborilmay qoladi. Qisqa xabarlarda umuman teg ishlatmasangiz ham bo'ladi, faqat muhim raqam yoki " +
+  "so'zni ajratib ko'rsatish uchun <b> dan foydalaning.";
+
 const SYSTEM_PROMPT: Record<AgentRole, string> = {
   customer:
     "Siz BarakaSELL do'konining Telegram botidagi yordamchisiz. Mijozga tovar borligi, narxi, uning loyalty ball " +
     "balansi, nasiya qarzi va xarid tarixi haqida savollarga javob berasiz — shu uchun sizga vosita(tool)lar berilgan, " +
     "ulardan foydalaning, taxmin qilmang. Faqat berilgan vositalar orqali olingan ma'lumotga tayanib javob bering. " +
     "Qisqa va aniq, o'zbek tilida javob bering. Sotuv qilish, chegirma berish yoki narxni o'zgartirish sizning " +
-    "vazifangiz emas — buni faqat do'kondagi kassir qila oladi.",
+    "vazifangiz emas — buni faqat do'kondagi kassir qila oladi. " +
+    TELEGRAM_HTML_FORMATTING,
   owner:
     "Siz BarakaSELL do'kon egasi uchun shaxsiy yordamchisiz. Sizga sotuv/foyda hisobotlari, kam qolgan tovarlar, " +
     "harakatsiz tovarlar va ochiq smenalar haqida vositalar(tool) berilgan. Faqat shu vositalar orqali olingan " +
-    "haqiqiy ma'lumotga tayanib, qisqa va aniq o'zbek tilida javob bering. Raqamlarni taxmin qilmang.",
+    "haqiqiy ma'lumotga tayanib, qisqa va aniq o'zbek tilida javob bering. Raqamlarni taxmin qilmang. " +
+    TELEGRAM_HTML_FORMATTING,
 };
 
 const MAX_TOOL_ITERATIONS = 5;
@@ -41,7 +57,7 @@ export class AgentService {
 
   constructor(
     @Inject(DEEPSEEK_CLIENT) private readonly client: OpenAI,
-    private readonly api: ApiClient,
+    private readonly botService: BotService,
   ) {}
 
   async ask(sessionKey: string, role: AgentRole, subjectId: string, question: string): Promise<string> {
@@ -58,7 +74,8 @@ export class AgentService {
   }
 
   private async run(sessionKey: string, role: AgentRole, subjectId: string, question: string): Promise<string> {
-    const { defs, handlers } = role === 'customer' ? customerTools(this.api, subjectId) : ownerTools(this.api);
+    const { defs, handlers } =
+      role === 'customer' ? customerTools(this.botService, subjectId) : ownerTools(this.botService);
     const messages: ChatCompletionMessageParam[] = [
       { role: 'system', content: SYSTEM_PROMPT[role] },
       ...this.getHistory(sessionKey),

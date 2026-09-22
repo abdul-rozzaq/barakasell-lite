@@ -1,24 +1,16 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
 import type { Bot } from 'grammy';
-import { GRAMMY_BOT } from '../telegram/bot.provider.js';
-import { ApiClient } from '../api/api.client.js';
-
-interface OutboxItem {
-  id: string;
-  kind: string;
-  payload: Record<string, unknown>;
-  targetType: 'CUSTOMER' | 'OWNER';
-  targetTelegramId: string | null;
-}
+import { GRAMMY_BOT } from '../bot.provider.js';
+import { BotService } from '../../bot/bot.service.js';
 
 const POLL_INTERVAL_MS = 15_000;
 
-// Polls the durable outbox (see modules/waitlist on the API) instead of
-// being called directly — a row survives a bot restart between the API
-// committing it and the message actually being sent. ackOutbox() marks a
-// row FAILED after 3 attempts so a permanently-broken chat (e.g. the user
-// blocked the bot) doesn't retry forever.
+// Polls the durable outbox (see modules/waitlist) instead of being called
+// directly from ReceiptsService — a row survives a process restart between
+// the API committing it and the message actually being sent. ackOutbox()
+// marks a row FAILED after 3 attempts so a permanently-broken chat (e.g.
+// the user blocked the bot) doesn't retry forever.
 @Injectable()
 export class OutboxPoller {
   private readonly logger = new Logger(OutboxPoller.name);
@@ -26,7 +18,7 @@ export class OutboxPoller {
 
   constructor(
     @Inject(GRAMMY_BOT) private readonly bot: Bot,
-    private readonly api: ApiClient,
+    private readonly botService: BotService,
   ) {}
 
   @Interval(POLL_INTERVAL_MS)
@@ -34,7 +26,7 @@ export class OutboxPoller {
     if (this.polling) return;
     this.polling = true;
     try {
-      const items = await this.api.get<OutboxItem[]>('/bot/outbox?limit=50');
+      const items = await this.botService.listOutbox();
       for (const item of items) {
         await this.deliver(item);
       }
@@ -45,7 +37,12 @@ export class OutboxPoller {
     }
   }
 
-  private async deliver(item: OutboxItem) {
+  private async deliver(item: {
+    id: string;
+    kind: string;
+    payload: unknown;
+    targetTelegramId: bigint | null;
+  }) {
     if (!item.targetTelegramId) {
       await this.ack(item.id, 'failed', "targetTelegramId yo'q");
       return;
@@ -58,17 +55,18 @@ export class OutboxPoller {
     }
   }
 
-  private renderMessage(item: OutboxItem): string {
+  private renderMessage(item: { kind: string; payload: unknown }): string {
+    const payload = item.payload as Record<string, unknown> | null;
     if (item.kind === 'product_arrived') {
-      const name = typeof item.payload.productName === 'string' ? item.payload.productName : 'Tovar';
+      const name = typeof payload?.productName === 'string' ? payload.productName : 'Tovar';
       return `\u{1F4E6} Siz so'ragan "${name}" tovari keldi!`;
     }
-    return JSON.stringify(item.payload);
+    return JSON.stringify(payload);
   }
 
   private async ack(id: string, status: 'sent' | 'failed', error?: string) {
     try {
-      await this.api.post(`/bot/outbox/${id}/ack`, { status, error });
+      await this.botService.ackOutbox(id, status, error);
     } catch (err) {
       this.logger.error(`Outbox ack xatosi (${id})`, err instanceof Error ? err.stack : err);
     }

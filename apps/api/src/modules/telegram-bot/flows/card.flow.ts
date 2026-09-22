@@ -1,17 +1,15 @@
 import bwipjs from 'bwip-js';
 import { InputFile, type Bot } from 'grammy';
-import { ApiClient } from '../api/api.client.js';
-import { SessionService } from '../telegram/session.service.js';
+import { BotService } from '../../bot/bot.service.js';
+import { SessionService } from '../session.service.js';
 import { MENU_BUTTONS, requireCustomer } from './menu.flow.js';
 
-export function registerCardFlow(bot: Bot, api: ApiClient, session: SessionService) {
+export function registerCardFlow(bot: Bot, botService: BotService, session: SessionService) {
   bot.hears(MENU_BUTTONS.card, async (ctx) => {
     const customerId = await requireCustomer(ctx, session);
     if (!customerId) return;
 
-    const loyalty = await api.get<{ cardCode: string | null; pointsBalance: number }>(
-      `/bot/customers/${customerId}/loyalty`,
-    );
+    const loyalty = await botService.loyalty(customerId);
     if (!loyalty.cardCode) {
       await ctx.reply("Kartangiz hali yaratilmagan, iltimos keyinroq urinib ko'ring.");
       return;

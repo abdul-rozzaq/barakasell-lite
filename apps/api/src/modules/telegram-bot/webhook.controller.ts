@@ -3,7 +3,12 @@ import { ConfigService } from '@nestjs/config';
 import type { Request, Response } from 'express';
 import { webhookCallback, type Bot } from 'grammy';
 import { GRAMMY_BOT } from './bot.provider.js';
+import { Public } from '../../common/decorators/public.decorator.js';
 
+// @Public() bypasses the global JwtAuthGuard — Telegram calls this with no
+// bearer token, only its own X-Telegram-Bot-Api-Secret-Token header, which
+// grammY's webhookCallback verifies itself via the secretToken option below.
+@Public()
 @Controller('telegram')
 export class WebhookController {
   // Annotated as a plain Express handler rather than
@@ -16,9 +21,6 @@ export class WebhookController {
     @Inject(GRAMMY_BOT) bot: Bot,
     config: ConfigService,
   ) {
-    // secretToken makes grammY verify Telegram's
-    // X-Telegram-Bot-Api-Secret-Token header itself — no separate guard
-    // needed on this route.
     this.handler = webhookCallback(bot, 'express', {
       secretToken: config.getOrThrow<string>('TELEGRAM_WEBHOOK_SECRET'),
     });

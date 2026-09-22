@@ -13,7 +13,7 @@ import { CustomerDebtService } from '../customers/customer-debt.service.js';
 import { ShiftsService } from '../shifts/shifts.service.js';
 import { SettingsService } from '../settings/settings.service.js';
 import { LoyaltyService } from '../loyalty/loyalty.service.js';
-import { computeEarnedPoints } from '../loyalty/loyalty.util.js';
+import { computeEarnedPoints, computeRedeemValue, maxRedeemablePoints } from '../loyalty/loyalty.util.js';
 import {
   FISCAL_GATEWAY,
   type FiscalGateway,
@@ -124,8 +124,38 @@ export class SalesService {
           "Chegirma summasi jami summadan katta bo'lishi mumkin emas",
         );
       }
+      const netBeforeLoyalty = subtotal.minus(discountAmount);
+
+      // Ball bilan to'lash: capped by the customer's own balance and by
+      // Settings.loyaltyMaxRedeemPercent of what's left to pay after the
+      // flat discount — see loyalty.util.ts maxRedeemablePoints(). Reversed
+      // proportionally on a return, see refund.util.ts / returns.service.ts.
+      let redeemPoints = 0;
+      let loyaltyDiscount = new Prisma.Decimal(0);
+      if (dto.redeemPoints && dto.redeemPoints > 0) {
+        if (!dto.customerId) {
+          throw new BadRequestException(
+            "Ball bilan to'lash uchun mijoz tanlanishi kerak",
+          );
+        }
+        if (!settings.loyaltyEnabled) {
+          throw new BadRequestException("Loyalty dasturi yoqilmagan");
+        }
+        const customer = await tx.customer.findUniqueOrThrow({
+          where: { id: dto.customerId },
+        });
+        const maxPoints = maxRedeemablePoints(netBeforeLoyalty, customer.pointsBalance, settings);
+        if (dto.redeemPoints > maxPoints) {
+          throw new BadRequestException(
+            `Ko'pi bilan ${maxPoints} ball ishlatish mumkin`,
+          );
+        }
+        redeemPoints = dto.redeemPoints;
+        loyaltyDiscount = computeRedeemValue(redeemPoints, settings);
+      }
+
       const { rounded: total, adj: roundingAdj } = applyRounding(
-        subtotal.minus(discountAmount),
+        netBeforeLoyalty.minus(loyaltyDiscount),
         settings.roundingMode,
       );
 
@@ -149,6 +179,8 @@ export class SalesService {
           customerId: dto.customerId,
           subtotal,
           discountAmount,
+          loyaltyDiscount,
+          loyaltyPointsRedeemed: redeemPoints,
           roundingAdj,
           total,
           paidAmount,
@@ -212,8 +244,21 @@ export class SalesService {
         });
       }
 
+      if (redeemPoints > 0 && dto.customerId) {
+        await this.loyaltyService.write(tx, {
+          customerId: dto.customerId,
+          type: 'REDEEM',
+          points: redeemPoints,
+          refType: 'Sale',
+          refId: created.id,
+          userId: user.sub,
+        });
+      }
+
       // Points earn on whatever customer is attached, regardless of tender
-      // mix (not just CREDIT sales) — see plan.md loyalty section.
+      // mix (not just CREDIT sales) — see plan.md loyalty section. Earns on
+      // `total`, which already reflects the redeem discount above — points
+      // don't accrue on money the customer didn't actually pay.
       let loyaltyPointsEarned = 0;
       if (settings.loyaltyEnabled && dto.customerId) {
         loyaltyPointsEarned = computeEarnedPoints(total, settings);
@@ -365,6 +410,20 @@ export class SalesService {
           refId: sale.id,
           userId: user.sub,
           note: 'Sotuv bekor qilindi',
+        });
+      }
+
+      // Give back any points the customer spent on this sale — voiding it
+      // means they never actually got the discount's value delivered.
+      if (sale.loyaltyPointsRedeemed > 0 && sale.customerId) {
+        await this.loyaltyService.write(tx, {
+          customerId: sale.customerId,
+          type: 'ADJUSTMENT',
+          points: sale.loyaltyPointsRedeemed,
+          refType: 'SaleVoid',
+          refId: sale.id,
+          userId: user.sub,
+          note: 'Sotuv bekor qilindi — ishlatilgan ball qaytarildi',
         });
       }
 

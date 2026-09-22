@@ -2,6 +2,7 @@ import {
   ArrayMinSize,
   IsArray,
   IsDateString,
+  IsInt,
   IsOptional,
   IsString,
   Min,
@@ -36,6 +37,15 @@ export class CreateSaleDto {
   @IsNumber()
   @Min(0)
   discountAmount?: number;
+
+  // Points to redeem for a checkout discount. Capped server-side by
+  // maxRedeemablePoints() (customer's balance, loyaltyMaxRedeemPercent of
+  // the discounted subtotal, loyaltyMinRedeemPoints floor) — see
+  // SalesService.create().
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  redeemPoints?: number;
 
   @IsOptional()
   @IsDateString()

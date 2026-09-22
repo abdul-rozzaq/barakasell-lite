@@ -11,6 +11,13 @@ const CASH_TENDERS: { type: TenderType; label: string }[] = [
   { type: 'CLICK', label: 'Click' },
 ];
 
+interface LoyaltySettings {
+  loyaltyEnabled: boolean;
+  loyaltyPointValue: string;
+  loyaltyMinRedeemPoints: number;
+  loyaltyMaxRedeemPercent: number;
+}
+
 export function PaymentScreen() {
   const { state, checkout, setCustomer, backToSale } = useApp();
   const [mode, setMode] = useState<'mixed' | 'credit'>('mixed');
@@ -23,8 +30,15 @@ export function PaymentScreen() {
   const [cardCode, setCardCode] = useState('');
   const [cardError, setCardError] = useState<string | null>(null);
   const [cardBusy, setCardBusy] = useState(false);
+  const [loyaltySettings, setLoyaltySettings] = useState<LoyaltySettings | null>(null);
+  const [editingRedeem, setEditingRedeem] = useState(false);
+  const [redeemPoints, setRedeemPoints] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    api.get<LoyaltySettings>('/settings').then(setLoyaltySettings).catch(() => setLoyaltySettings(null));
+  }, []);
 
   const subtotal = useMemo(
     () =>
@@ -34,8 +48,23 @@ export function PaymentScreen() {
       ),
     [state.cart],
   );
-  const total = Math.max(0, subtotal - discountAmount);
+  const pointValue = loyaltySettings ? Number(loyaltySettings.loyaltyPointValue) : 0;
+  const redeemValue = redeemPoints * pointValue;
+  const total = Math.max(0, subtotal - discountAmount - redeemValue);
   const itemCount = state.cart.length;
+
+  // Mirrors SalesService's maxRedeemablePoints() so the numeric pad's "full
+  // amount" shortcut lands on a value the server will actually accept —
+  // the server re-checks this itself, this is just to avoid an obvious
+  // round trip to a 400.
+  const maxRedeemPoints = useMemo(() => {
+    if (!loyaltySettings?.loyaltyEnabled || !state.customer || pointValue <= 0) return 0;
+    const netBeforeLoyalty = Math.max(0, subtotal - discountAmount);
+    const capPoints = Math.floor((netBeforeLoyalty * loyaltySettings.loyaltyMaxRedeemPercent) / 100 / pointValue);
+    const balance = state.customer.pointsBalance ?? 0;
+    const usable = Math.min(balance, capPoints);
+    return usable >= loyaltySettings.loyaltyMinRedeemPoints ? usable : 0;
+  }, [loyaltySettings, state.customer, subtotal, discountAmount, pointValue]);
 
   useEffect(() => {
     if (mode !== 'credit') return;
@@ -47,6 +76,10 @@ export function PaymentScreen() {
     }, 250);
     return () => clearTimeout(timer);
   }, [mode, customerQuery]);
+
+  useEffect(() => {
+    if (redeemPoints > maxRedeemPoints) setRedeemPoints(maxRedeemPoints);
+  }, [maxRedeemPoints, redeemPoints]);
 
   async function attachCard() {
     const code = cardCode.trim();
@@ -78,7 +111,7 @@ export function PaymentScreen() {
         mode === 'mixed'
           ? CASH_TENDERS.filter((t) => amounts[t.type] > 0).map((t) => ({ type: t.type, amount: amounts[t.type] }))
           : [{ type: 'CREDIT', amount: total }];
-      await checkout(tenders, discountAmount);
+      await checkout(tenders, discountAmount, redeemPoints);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Sotuvni yakunlab bo'lmadi");
     } finally {
@@ -108,7 +141,14 @@ export function PaymentScreen() {
                 <span className="text-text/60"> · {state.customer.pointsBalance} ball</span>
               )}
             </span>
-            <button type="button" onClick={() => setCustomer(null)} className="text-error-text px-1 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                setCustomer(null);
+                setRedeemPoints(0);
+              }}
+              className="text-error-text px-1 shrink-0"
+            >
               ✕
             </button>
           </div>
@@ -146,6 +186,19 @@ export function PaymentScreen() {
           <span className="text-sm font-condensed font-semibold">Chegirma</span>
           <span className="font-condensed">{formatSom(discountAmount)}</span>
         </button>
+
+        {maxRedeemPoints > 0 && (
+          <button
+            type="button"
+            onClick={() => setEditingRedeem(true)}
+            className="w-full h-11 mt-2 px-3 border border-divider text-left flex items-center justify-between"
+          >
+            <span className="text-sm font-condensed font-semibold">Ball bilan to&apos;lash</span>
+            <span className="font-condensed">
+              {redeemPoints > 0 ? `${redeemPoints} ball · ${formatSom(redeemValue)}` : '—'}
+            </span>
+          </button>
+        )}
       </div>
 
       <div className="flex-1 p-4 flex flex-col gap-4">
@@ -265,6 +318,21 @@ export function PaymentScreen() {
             setEditingDiscount(false);
           }}
           onCancel={() => setEditingDiscount(false)}
+        />
+      )}
+
+      {editingRedeem && (
+        <NumericPadModal
+          title="Ball bilan to'lash"
+          initialValue={redeemPoints}
+          fullAmount={maxRedeemPoints}
+          fullAmountLabel="Barcha ball"
+          allowDecimal={false}
+          onConfirm={(value) => {
+            setRedeemPoints(Math.min(Math.floor(value), maxRedeemPoints));
+            setEditingRedeem(false);
+          }}
+          onCancel={() => setEditingRedeem(false)}
         />
       )}
     </div>

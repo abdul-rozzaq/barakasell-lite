@@ -1,10 +1,11 @@
-import { ApiClient } from '../../api/api.client.js';
+import { BotService } from '../../../bot/bot.service.js';
 import type { ToolSet } from '../tool.types.js';
 
-// Read-only reporting proxies to ReportsService via /bot/reports/* — same
-// numbers the admin dashboard shows, just phrased as a chat answer. No
-// tool here can change a price, void a sale, or move stock.
-export function ownerTools(api: ApiClient): ToolSet {
+// Read-only reporting proxies to BotService (which itself wraps
+// ReportsService/ProductsService) — same numbers the admin dashboard
+// shows, just phrased as a chat answer. No tool here can change a price,
+// void a sale, or move stock.
+export function ownerTools(botService: BotService): ToolSet {
   const defs: ToolSet['defs'] = [
     {
       type: 'function',
@@ -82,7 +83,7 @@ export function ownerTools(api: ApiClient): ToolSet {
         parameters: {
           type: 'object',
           properties: {
-            days: { type: 'number', description: 'Necha kunlik so\'rovlar hisobga olinsin, standart 30' },
+            days: { type: 'number', description: "Necha kunlik so'rovlar hisobga olinsin, standart 30" },
           },
         },
       },
@@ -91,39 +92,38 @@ export function ownerTools(api: ApiClient): ToolSet {
 
   const handlers: ToolSet['handlers'] = {
     async sales_summary(args) {
-      const params = new URLSearchParams();
-      if (args.from) params.set('from', String(args.from));
-      if (args.to) params.set('to', String(args.to));
-      return api.get(`/bot/reports/sales-summary?${params.toString()}`);
+      const from = args.from ? new Date(String(args.from)) : undefined;
+      const to = args.to ? new Date(String(args.to)) : undefined;
+      return botService.salesSummary(from, to);
     },
 
     async top_products() {
-      return api.get('/bot/reports/top-products');
+      return botService.topProducts();
     },
 
     async low_stock() {
-      return api.get('/bot/reports/low-stock');
+      return botService.lowStock();
     },
 
     async dead_stock(args) {
       const days = typeof args.days === 'number' ? args.days : 30;
-      return api.get(`/bot/reports/dead-stock?days=${days}`);
+      return botService.deadStock(days);
     },
 
     async profit(args) {
-      const params = new URLSearchParams({ groupBy: String(args.groupBy ?? 'period') });
-      if (args.from) params.set('from', String(args.from));
-      if (args.to) params.set('to', String(args.to));
-      return api.get(`/bot/reports/profit?${params.toString()}`);
+      const groupBy = (args.groupBy as 'period' | 'product' | 'category' | undefined) ?? 'period';
+      const from = args.from ? new Date(String(args.from)) : undefined;
+      const to = args.to ? new Date(String(args.to)) : undefined;
+      return botService.profit(groupBy, from, to);
     },
 
     async open_shifts() {
-      return api.get('/bot/reports/open-shifts');
+      return botService.openShifts();
     },
 
     async demand_report(args) {
       const days = typeof args.days === 'number' ? args.days : 30;
-      return api.get(`/bot/reports/demand?days=${days}`);
+      return botService.demand(days);
     },
   };
 

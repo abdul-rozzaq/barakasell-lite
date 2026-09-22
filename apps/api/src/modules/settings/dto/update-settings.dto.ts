@@ -1,4 +1,4 @@
-import { IsBoolean, IsEnum, IsInt, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsBoolean, IsEnum, IsInt, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
 import { RoundingMode } from '../../../generated/prisma/client.js';
 
 export class UpdateSettingsDto {
@@ -41,5 +41,6 @@ export class UpdateSettingsDto {
   @IsOptional()
   @IsInt()
   @Min(0)
+  @Max(100)
   loyaltyMaxRedeemPercent?: number;
 }

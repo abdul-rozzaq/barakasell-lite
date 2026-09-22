@@ -2,8 +2,8 @@ import { describe, it, expect, vi } from 'vitest';
 import type { Bot } from 'grammy';
 import { registerStartFlow } from './start.flow.js';
 import { registerMenuFlow, MENU_BUTTONS } from './menu.flow.js';
-import type { ApiClient } from '../api/api.client.js';
-import type { SessionService } from '../telegram/session.service.js';
+import type { BotService } from '../../bot/bot.service.js';
+import type { SessionService } from '../session.service.js';
 
 // A minimal stand-in for grammY's Bot — just enough surface for the flow
 // registration functions (command/on/hears) — with no network access, so
@@ -47,12 +47,14 @@ function asBot(fake: FakeBot): Bot {
   } as unknown as Bot;
 }
 
-function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
+function fakeBotService(overrides: Partial<BotService> = {}): BotService {
   return {
-    get: vi.fn(),
-    post: vi.fn(),
+    register: vi.fn(),
+    loyalty: vi.fn(),
+    debt: vi.fn(),
+    purchases: vi.fn(),
     ...overrides,
-  } as unknown as ApiClient;
+  } as unknown as BotService;
 }
 
 function fakeSession(customerId: string | null): SessionService {
@@ -66,9 +68,9 @@ function fakeSession(customerId: string | null): SessionService {
 describe('registerStartFlow', () => {
   it('asks an unregistered chat to share a contact', async () => {
     const bot = new FakeBot();
-    const api = fakeApi();
+    const botService = fakeBotService();
     const session = fakeSession(null);
-    registerStartFlow(asBot(bot), api, session);
+    registerStartFlow(asBot(bot), botService, session);
 
     const reply = vi.fn();
     await bot.runCommand('start', { chat: { id: 1 }, reply });
@@ -79,10 +81,10 @@ describe('registerStartFlow', () => {
 
   it('registers a shared contact and remembers the returned customer id', async () => {
     const bot = new FakeBot();
-    const post = vi.fn().mockResolvedValue({ id: 'cust-1' });
-    const api = fakeApi({ post });
+    const register = vi.fn().mockResolvedValue({ id: 'cust-1' });
+    const botService = fakeBotService({ register });
     const session = fakeSession(null);
-    registerStartFlow(asBot(bot), api, session);
+    registerStartFlow(asBot(bot), botService, session);
 
     const reply = vi.fn();
     await bot.runOn('message:contact', {
@@ -94,7 +96,7 @@ describe('registerStartFlow', () => {
       reply,
     });
 
-    expect(post).toHaveBeenCalledWith('/bot/customers/register', {
+    expect(register).toHaveBeenCalledWith({
       telegramId: '42',
       phone: '+998901234567',
       name: 'Ali',
@@ -109,10 +111,10 @@ describe('registerStartFlow', () => {
 
   it('rejects a contact that belongs to someone else', async () => {
     const bot = new FakeBot();
-    const post = vi.fn();
-    const api = fakeApi({ post });
+    const register = vi.fn();
+    const botService = fakeBotService({ register });
     const session = fakeSession(null);
-    registerStartFlow(asBot(bot), api, session);
+    registerStartFlow(asBot(bot), botService, session);
 
     const reply = vi.fn();
     await bot.runOn('message:contact', {
@@ -122,36 +124,36 @@ describe('registerStartFlow', () => {
       reply,
     });
 
-    expect(post).not.toHaveBeenCalled();
+    expect(register).not.toHaveBeenCalled();
   });
 });
 
 describe('registerMenuFlow', () => {
   it('reports the points balance for a registered customer', async () => {
     const bot = new FakeBot();
-    const get = vi.fn().mockResolvedValue({ pointsBalance: 30 });
-    const api = fakeApi({ get });
+    const loyalty = vi.fn().mockResolvedValue({ pointsBalance: 30 });
+    const botService = fakeBotService({ loyalty });
     const session = fakeSession('cust-1');
-    registerMenuFlow(asBot(bot), api, session);
+    registerMenuFlow(asBot(bot), botService, session);
 
     const reply = vi.fn();
     await bot.runHears(MENU_BUTTONS.points, { chat: { id: 1 }, reply });
 
-    expect(get).toHaveBeenCalledWith('/bot/customers/cust-1/loyalty');
+    expect(loyalty).toHaveBeenCalledWith('cust-1');
     expect(reply).toHaveBeenCalledWith('Sizda 30 ball bor.');
   });
 
   it('asks an unregistered chat to /start before answering', async () => {
     const bot = new FakeBot();
-    const get = vi.fn();
-    const api = fakeApi({ get });
+    const debt = vi.fn();
+    const botService = fakeBotService({ debt });
     const session = fakeSession(null);
-    registerMenuFlow(asBot(bot), api, session);
+    registerMenuFlow(asBot(bot), botService, session);
 
     const reply = vi.fn();
     await bot.runHears(MENU_BUTTONS.debt, { chat: { id: 1 }, reply });
 
-    expect(get).not.toHaveBeenCalled();
+    expect(debt).not.toHaveBeenCalled();
     expect(reply).toHaveBeenCalledWith("Avval ro'yxatdan o'ting: /start");
   });
 });

@@ -6,8 +6,20 @@ import { ProductsService, type StockFilter } from '../catalog/products.service.j
 import { ReportsService } from '../reports/reports.service.js';
 import { OwnerLinkService } from '../owner-link/owner-link.service.js';
 import { WaitlistService } from '../waitlist/waitlist.service.js';
-import { BotRegisterDto } from './dto/bot-register.dto.js';
-import { CreateBotWaitlistDto } from './dto/create-bot-waitlist.dto.js';
+
+// Plain interfaces, not class-validator DTOs — the Telegram bot now calls
+// this service directly, in-process, so there's no HTTP body to validate.
+export interface RegisterCustomerInput {
+  telegramId: string;
+  phone: string;
+  name: string;
+  telegramUsername?: string;
+}
+
+export interface CreateWaitlistInput {
+  productId?: string;
+  rawText?: string;
+}
 
 @Injectable()
 export class BotService {
@@ -26,7 +38,7 @@ export class BotService {
   // creating a duplicate. Links onto an existing phone-matched customer
   // (e.g. one already in the debt ledger from an in-store credit sale)
   // rather than always creating a fresh one.
-  async register(dto: BotRegisterDto) {
+  async register(dto: RegisterCustomerInput) {
     const telegramId = BigInt(dto.telegramId);
 
     const existingByTelegram = await this.prisma.customer.findUnique({ where: { telegramId } });
@@ -150,7 +162,7 @@ export class BotService {
 
   // --- Waitlist (customer "let me know when it's back") -----------------
 
-  createWaitlistEntry(customerId: string, dto: CreateBotWaitlistDto) {
+  createWaitlistEntry(customerId: string, dto: CreateWaitlistInput) {
     return this.waitlistService.create({
       customerId,
       productId: dto.productId,

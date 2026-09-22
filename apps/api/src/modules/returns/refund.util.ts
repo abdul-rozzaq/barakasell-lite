@@ -6,6 +6,11 @@ export interface RefundInput {
   returnQtyBase: Prisma.Decimal;
   saleSubtotal: Prisma.Decimal;
   saleDiscountAmount: Prisma.Decimal;
+  // Money value of points redeemed at checkout (Sale.loyaltyDiscount).
+  // Treated exactly like saleDiscountAmount for refund purposes — the
+  // customer never paid this part in cash, so it can't be refunded in
+  // cash either. Defaults to 0 for callers/tests predating loyalty.
+  saleLoyaltyDiscount?: Prisma.Decimal;
 }
 
 // Prorates a line's already-discounted lineTotal by the fraction of qty
@@ -17,12 +22,14 @@ export interface RefundInput {
 // returns. See plan.md "Qaytarish".
 export function computeRefund(input: RefundInput): Prisma.Decimal {
   const { lineTotal, originalQtyBase, returnQtyBase, saleSubtotal, saleDiscountAmount } = input;
+  const saleLoyaltyDiscount = input.saleLoyaltyDiscount ?? new Prisma.Decimal(0);
   const ratio = originalQtyBase.isZero()
     ? new Prisma.Decimal(0)
     : returnQtyBase.div(originalQtyBase);
+  const totalDiscount = saleDiscountAmount.plus(saleLoyaltyDiscount);
   const discountFactor = saleSubtotal.isZero()
     ? new Prisma.Decimal(1)
-    : new Prisma.Decimal(1).minus(saleDiscountAmount.div(saleSubtotal));
+    : new Prisma.Decimal(1).minus(totalDiscount.div(saleSubtotal));
   return lineTotal
     .times(ratio)
     .times(discountFactor)

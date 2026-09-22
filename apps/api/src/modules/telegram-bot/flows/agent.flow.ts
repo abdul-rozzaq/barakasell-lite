@@ -1,6 +1,6 @@
 import type { Bot } from 'grammy';
 import { AgentService } from '../agent/agent.service.js';
-import { SessionService } from '../telegram/session.service.js';
+import { SessionService } from '../session.service.js';
 
 // Registered LAST in TelegramBootstrapService: grammY runs handlers in
 // registration order and stops at the first one that doesn't call next(),
@@ -20,6 +20,16 @@ export function registerAgentFlow(bot: Bot, agent: AgentService, session: Sessio
     const subjectId = identity.role === 'owner' ? identity.userId : identity.customerId;
     const sessionKey = `${identity.role}:${subjectId}`;
     const answer = await agent.ask(sessionKey, identity.role, subjectId, ctx.message.text);
-    await ctx.reply(answer);
+
+    try {
+      // The agent is instructed to format with Telegram's HTML subset
+      // (see SYSTEM_PROMPT in agent.service.ts) — bold headings, code for
+      // numbers, etc. If it ever emits something Telegram can't parse as
+      // HTML (stray "<"/"&", an unsupported tag), fall back to plain text
+      // rather than silently dropping the reply.
+      await ctx.reply(answer, { parse_mode: 'HTML' });
+    } catch {
+      await ctx.reply(answer);
+    }
   });
 }

@@ -1,14 +1,14 @@
-import 'dotenv/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module.js';
+import { BotService } from '../src/modules/bot/bot.service.js';
 
 describe('Product requests / waitlist (e2e)', () => {
   let app: INestApplication<App>;
+  let botService: BotService;
   let adminToken: string;
-  const serviceKey = process.env.SERVICE_API_KEY!;
 
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -20,6 +20,7 @@ describe('Product requests / waitlist (e2e)', () => {
       new ValidationPipe({ whitelist: true, transform: true }),
     );
     await app.init();
+    botService = app.get(BotService);
 
     const login = await request(app.getHttpServer())
       .post('/api/auth/login')
@@ -33,10 +34,6 @@ describe('Product requests / waitlist (e2e)', () => {
 
   function auth() {
     return { Authorization: `Bearer ${adminToken}` };
-  }
-
-  function svc() {
-    return { 'X-Service-Key': serviceKey };
   }
 
   async function createProduct(name: string) {
@@ -59,17 +56,9 @@ describe('Product requests / waitlist (e2e)', () => {
     // actually deliverable.
     const telegramId = String(Date.now());
     const phone = `+998${Date.now()}${Math.floor(Math.random() * 1000)}`;
-    const customer = await request(app.getHttpServer())
-      .post('/api/bot/customers/register')
-      .set(svc())
-      .send({ telegramId, phone, name: 'Navbatchi mijoz' })
-      .expect(201);
+    const customer = await botService.register({ telegramId, phone, name: 'Navbatchi mijoz' });
 
-    await request(app.getHttpServer())
-      .post(`/api/bot/customers/${customer.body.id}/waitlist`)
-      .set(svc())
-      .send({ productId })
-      .expect(201);
+    await botService.createWaitlistEntry(customer.id, { productId });
 
     // Posting an unrelated receipt must not resolve the request.
     const otherProductId = await createProduct(`Boshqa tovar ${Date.now()}`);
@@ -84,12 +73,9 @@ describe('Product requests / waitlist (e2e)', () => {
       .set(auth())
       .expect(201);
 
-    const outboxBefore = await request(app.getHttpServer())
-      .get('/api/bot/outbox')
-      .set(svc())
-      .expect(200);
+    const outboxBefore = await botService.listOutbox();
     expect(
-      outboxBefore.body.some((o: { payload: { productId: string } }) => o.payload.productId === productId),
+      outboxBefore.some((o) => (o.payload as { productId?: string })?.productId === productId),
     ).toBe(false);
 
     // Now post the matching receipt.
@@ -104,29 +90,17 @@ describe('Product requests / waitlist (e2e)', () => {
       .set(auth())
       .expect(201);
 
-    const outbox = await request(app.getHttpServer())
-      .get('/api/bot/outbox')
-      .set(svc())
-      .expect(200);
-    const entry = outbox.body.find(
-      (o: { payload: { productId: string } }) => o.payload.productId === productId,
-    );
+    const outbox = await botService.listOutbox();
+    const entry = outbox.find((o) => (o.payload as { productId?: string })?.productId === productId);
     expect(entry).toBeDefined();
-    expect(entry.kind).toBe('product_arrived');
-    expect(entry.targetTelegramId).toBe(telegramId);
+    expect(entry!.kind).toBe('product_arrived');
+    expect(String(entry!.targetTelegramId)).toBe(telegramId);
 
     // Acking removes it from the pending list.
-    await request(app.getHttpServer())
-      .post(`/api/bot/outbox/${entry.id}/ack`)
-      .set(svc())
-      .send({ status: 'sent' })
-      .expect(201);
+    await botService.ackOutbox(entry!.id, 'sent');
 
-    const outboxAfter = await request(app.getHttpServer())
-      .get('/api/bot/outbox')
-      .set(svc())
-      .expect(200);
-    expect(outboxAfter.body.some((o: { id: string }) => o.id === entry.id)).toBe(false);
+    const outboxAfter = await botService.listOutbox();
+    expect(outboxAfter.some((o) => o.id === entry!.id)).toBe(false);
   });
 
   it('does not queue an outbox message for a request with no linked telegramId, but still resolves it', async () => {
@@ -149,12 +123,9 @@ describe('Product requests / waitlist (e2e)', () => {
       .set(auth())
       .expect(201);
 
-    const outbox = await request(app.getHttpServer())
-      .get('/api/bot/outbox')
-      .set(svc())
-      .expect(200);
+    const outbox = await botService.listOutbox();
     expect(
-      outbox.body.some((o: { payload: { productId: string } }) => o.payload.productId === productId),
+      outbox.some((o) => (o.payload as { productId?: string })?.productId === productId),
     ).toBe(false);
   });
 

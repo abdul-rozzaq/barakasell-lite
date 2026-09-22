@@ -38,7 +38,7 @@ export function ShiftOpenScreen() {
       </div>
       <button
         type="button"
-        disabled={value <= 0 || busy}
+        disabled={busy}
         onClick={start}
         className="relative w-full max-w-xs h-14 bg-accent text-white font-condensed font-semibold disabled:opacity-40"
       >

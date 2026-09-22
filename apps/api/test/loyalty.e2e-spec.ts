@@ -222,4 +222,149 @@ describe('Loyalty (e2e)', () => {
       .expect(201);
     expect(again.body.cardCode).toBe(card.body.cardCode);
   });
+
+  describe('redeeming points at checkout', () => {
+    it('reduces the total, earns on the post-redeem amount, and records both ledger entries', async () => {
+      await enableLoyalty();
+      const customerId = await createCustomer();
+      const productId = await createProduct(10000);
+      await receive(productId, 20, 4000);
+
+      // First sale just to build up a points balance.
+      await request(app.getHttpServer())
+        .post('/api/sales')
+        .set(auth(cashierToken))
+        .set('Idempotency-Key', `redeem-earn-${Date.now()}`)
+        .send({
+          lines: [{ productId, unitLabel: 'dona', qtyInUnit: 10 }],
+          tenders: [{ type: 'CASH', amount: 100000 }],
+          customerId,
+        })
+        .expect(201);
+      // balance = 100
+
+      const sale = await request(app.getHttpServer())
+        .post('/api/sales')
+        .set(auth(cashierToken))
+        .set('Idempotency-Key', `redeem-${Date.now()}`)
+        .send({
+          lines: [{ productId, unitLabel: 'dona', qtyInUnit: 5 }],
+          tenders: [{ type: 'CASH', amount: 48000 }],
+          customerId,
+          redeemPoints: 20,
+        })
+        .expect(201);
+
+      expect(Number(sale.body.loyaltyDiscount)).toBe(2000); // 20 points * 100 so'm
+      expect(sale.body.loyaltyPointsRedeemed).toBe(20);
+      expect(Number(sale.body.total)).toBe(48000); // 50000 - 2000
+      expect(sale.body.loyaltyPointsEarned).toBe(48); // floor(48000/1000)
+
+      const loyalty = await request(app.getHttpServer())
+        .get(`/api/customers/${customerId}/loyalty`)
+        .set(auth(adminToken))
+        .expect(200);
+      expect(loyalty.body.pointsBalance).toBe(128); // 100 - 20 + 48
+      expect(loyalty.body.entries[0].type).toBe('EARN');
+      expect(loyalty.body.entries[1].type).toBe('REDEEM');
+      expect(loyalty.body.entries[1].points).toBe(-20);
+    });
+
+    it('rejects redeeming more points than the customer has', async () => {
+      await enableLoyalty();
+      const customerId = await createCustomer(); // balance 0
+      const productId = await createProduct(10000);
+      await receive(productId, 20, 4000);
+
+      await request(app.getHttpServer())
+        .post('/api/sales')
+        .set(auth(cashierToken))
+        .set('Idempotency-Key', `redeem-toomuch-${Date.now()}`)
+        .send({
+          lines: [{ productId, unitLabel: 'dona', qtyInUnit: 1 }],
+          tenders: [{ type: 'CASH', amount: 10000 }],
+          customerId,
+          redeemPoints: 5,
+        })
+        .expect(400);
+    });
+
+    it('rejects redeeming points with no customer selected', async () => {
+      await enableLoyalty();
+      const productId = await createProduct(10000);
+      await receive(productId, 20, 4000);
+
+      await request(app.getHttpServer())
+        .post('/api/sales')
+        .set(auth(cashierToken))
+        .set('Idempotency-Key', `redeem-nocust-${Date.now()}`)
+        .send({
+          lines: [{ productId, unitLabel: 'dona', qtyInUnit: 1 }],
+          tenders: [{ type: 'CASH', amount: 10000 }],
+          redeemPoints: 5,
+        })
+        .expect(400);
+    });
+
+    it('gives back a proportional share of redeemed points on a partial return', async () => {
+      await enableLoyalty();
+      const customerId = await createCustomer();
+      const productId = await createProduct(10000);
+      await receive(productId, 20, 4000);
+
+      // Build a 100-point balance first.
+      await request(app.getHttpServer())
+        .post('/api/sales')
+        .set(auth(cashierToken))
+        .set('Idempotency-Key', `redeem-ret-earn-${Date.now()}`)
+        .send({
+          lines: [{ productId, unitLabel: 'dona', qtyInUnit: 10 }],
+          tenders: [{ type: 'CASH', amount: 100000 }],
+          customerId,
+        })
+        .expect(201);
+
+      const sale = await request(app.getHttpServer())
+        .post('/api/sales')
+        .set(auth(cashierToken))
+        .set('Idempotency-Key', `redeem-ret-${Date.now()}`)
+        .send({
+          lines: [{ productId, unitLabel: 'dona', qtyInUnit: 10 }],
+          tenders: [{ type: 'CASH', amount: 95000 }],
+          customerId,
+          redeemPoints: 50,
+        })
+        .expect(201);
+      expect(sale.body.loyaltyPointsEarned).toBe(95); // floor(95000/1000)
+      // balance = 100 - 50 + 95 = 145
+
+      const pin = await request(app.getHttpServer())
+        .post('/api/auth/confirm-pin')
+        .set(auth(cashierToken))
+        .send({ pin: '1234' });
+
+      const ret = await request(app.getHttpServer())
+        .post('/api/returns')
+        .set(auth(cashierToken))
+        .set('X-Pin-Confirmation', pin.body.confirmationToken)
+        .send({
+          saleId: sale.body.id,
+          lines: [{ saleLineId: sale.body.lines[0].id, qtyBase: 5 }],
+          refundTender: 'CASH',
+        })
+        .expect(201);
+      expect(Number(ret.body.refundTotal)).toBe(47500); // half the line, minus the loyalty-discount share
+
+      const loyalty = await request(app.getHttpServer())
+        .get(`/api/customers/${customerId}/loyalty`)
+        .set(auth(adminToken))
+        .expect(200);
+      // 145 - 47 (earn reversal) + 25 (redeem refund) = 123
+      expect(loyalty.body.pointsBalance).toBe(123);
+      expect(loyalty.body.entries[0].type).toBe('ADJUSTMENT');
+      expect(loyalty.body.entries[0].points).toBe(25);
+      expect(loyalty.body.entries[1].type).toBe('RETURN_REVERSAL');
+      expect(loyalty.body.entries[1].points).toBe(-47);
+    });
+  });
 });

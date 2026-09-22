@@ -67,4 +67,39 @@ describe('computeRefund', () => {
     });
     expect(r.toString()).toBe('3333.33');
   });
+
+  it('a loyalty (points) discount reduces the refund the same way a flat discount does', () => {
+    const r = computeRefund({
+      lineTotal: D(100000),
+      originalQtyBase: D(10),
+      returnQtyBase: D(10),
+      saleSubtotal: D(100000),
+      saleDiscountAmount: D(0),
+      saleLoyaltyDiscount: D(10000),
+    });
+    expect(r.toString()).toBe('90000');
+  });
+
+  it('combines a flat discount and a loyalty discount', () => {
+    const r = computeRefund({
+      lineTotal: D(100000),
+      originalQtyBase: D(10),
+      returnQtyBase: D(10),
+      saleSubtotal: D(100000),
+      saleDiscountAmount: D(5000),
+      saleLoyaltyDiscount: D(5000),
+    });
+    expect(r.toString()).toBe('90000');
+  });
+
+  it('defaults saleLoyaltyDiscount to 0 when omitted (pre-loyalty callers)', () => {
+    const r = computeRefund({
+      lineTotal: D(50000),
+      originalQtyBase: D(10),
+      returnQtyBase: D(10),
+      saleSubtotal: D(50000),
+      saleDiscountAmount: D(0),
+    });
+    expect(r.toString()).toBe('50000');
+  });
 });

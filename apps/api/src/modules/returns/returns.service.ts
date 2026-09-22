@@ -126,6 +126,7 @@ export class ReturnsService {
           returnQtyBase: qtyBase,
           saleSubtotal: sale.subtotal,
           saleDiscountAmount: sale.discountAmount,
+          saleLoyaltyDiscount: sale.loyaltyDiscount,
         });
         refundTotal = refundTotal.plus(refundAmount);
         costReversed = costReversed.plus(lineCost);
@@ -173,6 +174,28 @@ export class ReturnsService {
             refType: 'SaleReturn',
             refId: created.id,
             userId: user.sub,
+          });
+        }
+      }
+
+      // Give back a share of the points the customer spent on this sale,
+      // proportional to how much is being refunded — they didn't get the
+      // full value of what those points paid for.
+      if (sale.loyaltyPointsRedeemed > 0 && sale.customerId) {
+        const refundedPoints = proportionalPointsReversal(
+          sale.loyaltyPointsRedeemed,
+          refundTotal,
+          sale.total,
+        );
+        if (refundedPoints > 0) {
+          await this.loyaltyService.write(tx, {
+            customerId: sale.customerId,
+            type: 'ADJUSTMENT',
+            points: refundedPoints,
+            refType: 'SaleReturn',
+            refId: created.id,
+            userId: user.sub,
+            note: 'Qaytarish — ishlatilgan ball qisman qaytarildi',
           });
         }
       }

@@ -1,13 +1,9 @@
 import { Keyboard, type Bot } from 'grammy';
-import { ApiClient } from '../api/api.client.js';
-import { SessionService } from '../telegram/session.service.js';
+import { BotService } from '../../bot/bot.service.js';
+import { SessionService } from '../session.service.js';
 import { mainMenuKeyboard } from './menu.flow.js';
 
-interface RegisteredCustomer {
-  id: string;
-}
-
-export function registerStartFlow(bot: Bot, api: ApiClient, session: SessionService) {
+export function registerStartFlow(bot: Bot, botService: BotService, session: SessionService) {
   bot.command('start', async (ctx) => {
     const chatId = ctx.chat.id;
     const existingId = await session.getCustomerId(chatId);
@@ -31,7 +27,7 @@ export function registerStartFlow(bot: Bot, api: ApiClient, session: SessionServ
 
     const name =
       [contact.first_name, contact.last_name].filter(Boolean).join(' ').trim() || ctx.from.first_name;
-    const customer = await api.post<RegisteredCustomer>('/bot/customers/register', {
+    const customer = await botService.register({
       telegramId: String(ctx.from.id),
       phone: contact.phone_number,
       name,
