@@ -112,3 +112,24 @@ yozishni o'zing tanla. Agar yuqoridagi qoidalardan biri boshqasi bilan
 ziddiyatga kelsa (masalan offline queue va PIN qayta so'rash), qanday
 hal qilishni o'zing qaror qilib, nima uchun shunday qilganingni qisqa
 tushuntir.
+
+---
+
+## Kelajakdagi rejalar (hozircha qilinmaydi)
+
+Loyalty, Telegram bot + AI agent va waitlist (3-milestone) tugallangandan
+keyin qo'shildi — batafsil kontekst `PROGRESS.md`ning "Keyingi qadamlar"
+bo'limida. Bu yerda faqat ro'yxat, aniq boshlash vaqti belgilanmagan:
+
+1. **Egasi uchun hodisaviy/vaqtli Telegram bildirishnomalari.**
+   Infratuzilma (`NotificationOutbox`, `OwnerLinkService`,
+   `@nestjs/schedule`) allaqachon tayyor — faqat hodisalarni yozish
+   (smena ochilishi/yopilishi, katta kassa farqi, sotuv bekor qilinishi)
+   va bot tomonida `@Cron` bilan kunlik/haftalik xulosa qo'shish kerak.
+
+2. **Kirim (chek/faktura) AI OCR.** Chek/накладной rasmini Vision model
+   bilan o'qib, `Receipt` draft'ini avtomatik to'ldirish, fuzzy SKU
+   moslashtirish, narx anomaliyasi ogohlantirishi. Butunlay yangi qatlam
+   (fayl yuklash + Vision API + moslashtirish UI) — mavjud pattern'larga
+   sodda ravishda o'xshamaydi, alohida reja/tadqiqot bilan boshlanishi
+   kerak.
