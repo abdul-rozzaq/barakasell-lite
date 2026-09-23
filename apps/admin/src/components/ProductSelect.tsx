@@ -207,9 +207,9 @@ export function ProductSelect({
 
       {/* Dropdown Popover */}
       {isOpen && (
-        <div className="absolute left-0 top-full mt-1 w-full min-w-[280px] bg-white border border-divider shadow-lg z-50 rounded-sm">
+        <div className="absolute left-0 top-full mt-1 w-full min-w-[280px] bg-white border border-divider shadow-lg z-50">
           {/* Search Input */}
-          <div className="p-2 border-b border-divider bg-surface/50">
+          <div className="p-2 border-b border-divider bg-surface">
             <div className="relative flex items-center">
               <input
                 ref={inputRef}
@@ -243,7 +243,7 @@ export function ProductSelect({
           <div
             ref={listRef}
             onScroll={handleScroll}
-            className="max-h-60 overflow-y-auto divide-y divide-divider/30 text-sm"
+            className="max-h-60 overflow-y-auto divide-y divide-divider text-sm"
           >
             {loading && items.length === 0 && (
               <div className="p-4 text-center text-xs text-text/50">
@@ -265,7 +265,7 @@ export function ProductSelect({
                   key={product.id}
                   onClick={() => handleSelect(product)}
                   className={`px-3 py-2 cursor-pointer transition-colors flex items-center justify-between text-xs ${
-                    isSelected ? "bg-accent/10 font-semibold text-accent" : "hover:bg-black/[0.03]"
+                    isSelected ? "bg-accent-tint-bg font-semibold text-accent-tint-text" : "hover:bg-black/[0.03]"
                   }`}
                 >
                   <div className="truncate pr-2">
@@ -282,7 +282,7 @@ export function ProductSelect({
             })}
 
             {loadingMore && (
-              <div className="p-2 text-center text-xs text-text/50 bg-surface/30">
+              <div className="p-2 text-center text-xs text-text/50 bg-surface">
                 Yana yuklanmoqda...
               </div>
             )}
@@ -290,7 +290,7 @@ export function ProductSelect({
             {hasMore && !loadingMore && items.length > 0 && (
               <div
                 onClick={() => loadProducts(search, false)}
-                className="p-1.5 text-center text-[11px] text-accent hover:underline cursor-pointer bg-surface/20"
+                className="p-1.5 text-center text-[11px] text-accent hover:underline cursor-pointer bg-surface"
               >
                 Ko&apos;proq yuklash
               </div>

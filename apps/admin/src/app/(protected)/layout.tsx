@@ -60,7 +60,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
                 className={`block px-5 py-2.5 text-sm border-l-2 ${
                   active
                     ? "border-accent bg-accent-tint-bg text-accent-tint-text font-medium"
-                    : "border-transparent text-text/70 hover:bg-black/[.03]"
+                    : "border-transparent text-text/70 hover:bg-black/[0.03]"
                 }`}
               >
                 {item.label}

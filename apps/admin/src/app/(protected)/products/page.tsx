@@ -32,20 +32,20 @@ type StockFilter = "all" | "low" | "out";
 function stockBadge(stock: number) {
   if (stock <= 0) {
     return (
-      <span className="border border-[color:var(--color-error-border)] bg-[color:var(--color-error-bg)] text-[color:var(--color-error-text)] px-2 py-0.5 text-xs">
+      <span className="border border-error-border bg-error-bg text-error-text px-2 py-0.5 text-xs">
         Tugagan
       </span>
     );
   }
   if (stock < 10) {
     return (
-      <span className="border border-[color:var(--color-warning-border)] bg-[color:var(--color-warning-bg)] text-[color:var(--color-warning-text)] px-2 py-0.5 text-xs">
+      <span className="border border-warning-border bg-warning-bg text-warning-text px-2 py-0.5 text-xs">
         Kam qoldi
       </span>
     );
   }
   return (
-    <span className="border border-[color:var(--color-success-border)] text-[color:var(--color-success-text)] px-2 py-0.5 text-xs">
+    <span className="border border-success-border text-success-text px-2 py-0.5 text-xs">
       Yetarli
     </span>
   );
@@ -183,7 +183,7 @@ export default function ProductsPage() {
               [...Array(5)].map((_, i) => (
                 <tr key={i} className="border-b border-divider">
                   <td colSpan={6} className="px-4 py-3">
-                    <div className="h-4 bg-black/[.05] animate-pulse w-full" />
+                    <div className="h-4 bg-black/5 animate-pulse w-full" />
                   </td>
                 </tr>
               ))}
@@ -197,7 +197,7 @@ export default function ProductsPage() {
             {status === "error" && (
               <tr>
                 <td colSpan={6} className="px-4 py-10 text-center">
-                  <span className="text-[color:var(--color-error-text)]">{error}</span>{" "}
+                  <span className="text-error-text">{error}</span>{" "}
                   <button onClick={load} className="text-accent underline ml-2">
                     Qayta urinish
                   </button>
@@ -208,7 +208,7 @@ export default function ProductsPage() {
               items.map((p) => {
                 const baseUnit = p.units.find((u) => u.isBase) ?? p.units[0];
                 return (
-                  <tr key={p.id} className="border-b border-divider last:border-0 hover:bg-black/[.02]">
+                  <tr key={p.id} className="border-b border-divider last:border-0 hover:bg-black/[0.02]">
                     <td className="px-4 py-2.5">
                       <Link href={`/products/${p.id}`} className="text-accent-dark hover:underline font-medium">
                         {p.name}
@@ -261,7 +261,7 @@ export default function ProductsPage() {
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page <= 1 || status === "loading"}
-                className="h-8 px-2.5 border border-divider font-condensed bg-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-black/[.03]"
+                className="h-8 px-2.5 border border-divider font-condensed bg-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-black/[0.03]"
               >
                 ‹ Oldingi
               </button>
@@ -278,7 +278,7 @@ export default function ProductsPage() {
                     className={`h-8 min-w-8 px-2 font-condensed border ${
                       page === p
                         ? "border-accent bg-accent text-white font-bold"
-                        : "border-divider bg-white text-text/80 hover:bg-black/[.03]"
+                        : "border-divider bg-white text-text/80 hover:bg-black/[0.03]"
                     }`}
                   >
                     {p}
@@ -288,7 +288,7 @@ export default function ProductsPage() {
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page >= totalPages || status === "loading"}
-                className="h-8 px-2.5 border border-divider font-condensed bg-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-black/[.03]"
+                className="h-8 px-2.5 border border-divider font-condensed bg-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-black/[0.03]"
               >
                 Keyingi ›
               </button>
@@ -407,7 +407,7 @@ function CreateProductModal({
         </div>
 
         {error && (
-          <div className="mb-4 border border-[color:var(--color-error-border)] bg-[color:var(--color-error-bg)] px-3 py-2 text-sm text-[color:var(--color-error-text)]">
+          <div className="mb-4 border border-error-border bg-error-bg px-3 py-2 text-sm text-error-text">
             {error}
           </div>
         )}

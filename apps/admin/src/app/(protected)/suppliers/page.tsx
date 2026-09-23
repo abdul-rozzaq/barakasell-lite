@@ -63,7 +63,7 @@ export default function SuppliersPage() {
               [...Array(4)].map((_, i) => (
                 <tr key={i} className="border-b border-divider">
                   <td colSpan={5} className="px-4 py-3">
-                    <div className="h-4 bg-black/[.05] animate-pulse w-full" />
+                    <div className="h-4 bg-black/5 animate-pulse w-full" />
                   </td>
                 </tr>
               ))}
@@ -77,7 +77,7 @@ export default function SuppliersPage() {
             {status === "error" && (
               <tr>
                 <td colSpan={5} className="px-4 py-10 text-center">
-                  <span className="text-[color:var(--color-error-text)]">{error}</span>{" "}
+                  <span className="text-error-text">{error}</span>{" "}
                   <button onClick={load} className="text-accent underline ml-2">
                     Qayta urinish
                   </button>
@@ -166,7 +166,7 @@ function CreateSupplierModal({ onClose, onCreated }: { onClose: () => void; onCr
         />
 
         {error && (
-          <div className="mb-4 border border-[color:var(--color-error-border)] bg-[color:var(--color-error-bg)] px-3 py-2 text-sm text-[color:var(--color-error-text)]">
+          <div className="mb-4 border border-error-border bg-error-bg px-3 py-2 text-sm text-error-text">
             {error}
           </div>
         )}

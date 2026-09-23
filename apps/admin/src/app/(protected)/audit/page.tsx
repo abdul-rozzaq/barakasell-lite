@@ -15,10 +15,10 @@ interface AuditRow {
 }
 
 const ACTION_COLOR: Record<string, string> = {
-  Sotuv: "text-[color:var(--color-accent-tint-text)] bg-[color:var(--color-accent-tint-bg)]",
-  Qaytarish: "text-[color:var(--color-warning-text)] bg-[color:var(--color-warning-bg)]",
-  Inventarizatsiya: "text-[color:var(--color-warning-text)] bg-[color:var(--color-warning-bg)]",
-  "O'chirish": "text-[color:var(--color-error-text)] bg-[color:var(--color-error-bg)]",
+  Sotuv: "text-accent-tint-text bg-accent-tint-bg",
+  Qaytarish: "text-warning-text bg-warning-bg",
+  Inventarizatsiya: "text-warning-text bg-warning-bg",
+  "O'chirish": "text-error-text bg-error-bg",
 };
 
 function actionClass(action: string) {
@@ -94,7 +94,7 @@ export default function AuditPage() {
               [...Array(5)].map((_, i) => (
                 <tr key={i} className="border-b border-divider">
                   <td colSpan={4} className="px-4 py-3">
-                    <div className="h-4 bg-black/[.05] animate-pulse w-full" />
+                    <div className="h-4 bg-black/5 animate-pulse w-full" />
                   </td>
                 </tr>
               ))}
@@ -108,7 +108,7 @@ export default function AuditPage() {
             {status === "error" && (
               <tr>
                 <td colSpan={4} className="px-4 py-10 text-center">
-                  <span className="text-[color:var(--color-error-text)]">{error}</span>{" "}
+                  <span className="text-error-text">{error}</span>{" "}
                   <button onClick={load} className="text-accent underline ml-2">
                     Qayta urinish
                   </button>

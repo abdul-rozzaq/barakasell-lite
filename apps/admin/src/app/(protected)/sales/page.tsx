@@ -117,7 +117,7 @@ function TotpModal({
         />
 
         {error && (
-          <div className="mb-4 border border-[color:var(--color-error-border)] bg-[color:var(--color-error-bg)] px-3 py-2 text-sm text-[color:var(--color-error-text)]">
+          <div className="mb-4 border border-error-border bg-error-bg px-3 py-2 text-sm text-error-text">
             {error}
           </div>
         )}
@@ -134,7 +134,7 @@ function TotpModal({
           <button
             type="submit"
             disabled={submitting || code.length !== 6}
-            className="font-condensed h-10 px-4 bg-[color:var(--color-error-text)] text-white font-semibold text-sm disabled:opacity-50"
+            className="font-condensed h-10 px-4 bg-error-text text-white font-semibold text-sm disabled:opacity-50"
           >
             {submitting ? "..." : "Tasdiqlash"}
           </button>
@@ -257,7 +257,7 @@ export default function SalesPage() {
               [...Array(8)].map((_, i) => (
                 <tr key={i} className="border-b border-divider">
                   <td colSpan={7} className="px-4 py-3">
-                    <div className="h-4 bg-black/[.05] animate-pulse w-full" />
+                    <div className="h-4 bg-black/5 animate-pulse w-full" />
                   </td>
                 </tr>
               ))}
@@ -271,7 +271,7 @@ export default function SalesPage() {
             {status === "error" && (
               <tr>
                 <td colSpan={7} className="px-4 py-10 text-center">
-                  <span className="text-[color:var(--color-error-text)]">{error}</span>{" "}
+                  <span className="text-error-text">{error}</span>{" "}
                   <button onClick={load} className="text-accent underline ml-2">
                     Qayta urinish
                   </button>
@@ -282,7 +282,7 @@ export default function SalesPage() {
               items.map((sale) => (
                 <Fragment key={sale.id}>
                   <tr
-                    className={`border-b border-divider hover:bg-black/[.02] ${sale.status === "VOIDED" ? "opacity-50" : ""}`}
+                    className={`border-b border-divider hover:bg-black/[0.02] ${sale.status === "VOIDED" ? "opacity-50" : ""}`}
                   >
                     <td className="px-4 py-2.5">
                       <button
@@ -308,18 +308,18 @@ export default function SalesPage() {
                     <td className="px-4 py-2.5 text-right font-condensed font-medium">
                       {formatSom(sale.total)}
                       {Number(sale.discountAmount) > 0 && (
-                        <div className="text-xs font-normal text-[color:var(--color-success-text)]">
+                        <div className="text-xs font-normal text-success-text">
                           -{formatSom(sale.discountAmount)} chegirma
                         </div>
                       )}
                     </td>
                     <td className="px-4 py-2.5">
                       {sale.status === "COMPLETED" ? (
-                        <span className="border border-[color:var(--color-success-border)] text-[color:var(--color-success-text)] px-2 py-0.5 text-xs">
+                        <span className="border border-success-border text-success-text px-2 py-0.5 text-xs">
                           Aktiv
                         </span>
                       ) : (
-                        <span className="border border-[color:var(--color-error-border)] bg-[color:var(--color-error-bg)] text-[color:var(--color-error-text)] px-2 py-0.5 text-xs">
+                        <span className="border border-error-border bg-error-bg text-error-text px-2 py-0.5 text-xs">
                           Bekor qilingan
                         </span>
                       )}
@@ -329,7 +329,7 @@ export default function SalesPage() {
                         <button
                           onClick={() => setVoidTarget(sale)}
                           disabled={voidingId === sale.id}
-                          className="h-8 px-3 border border-[color:var(--color-error-border)] text-[color:var(--color-error-text)] text-xs hover:bg-[color:var(--color-error-bg)] disabled:opacity-40"
+                          className="h-8 px-3 border border-error-border text-error-text text-xs hover:bg-error-bg disabled:opacity-40"
                         >
                           Bekor qilish
                         </button>
@@ -339,7 +339,7 @@ export default function SalesPage() {
 
                   {/* Expanded detail row */}
                   {expanded === sale.id && (
-                    <tr key={`${sale.id}-detail`} className="border-b border-divider bg-black/[.01]">
+                    <tr key={`${sale.id}-detail`} className="border-b border-divider bg-black/[0.01]">
                       <td colSpan={7} className="px-6 py-4">
                         <div className="text-xs text-text/60 mb-2 font-medium uppercase tracking-wide">
                           Tovarlar
@@ -361,7 +361,7 @@ export default function SalesPage() {
                                   <td className="py-0.5">
                                     {line.productName}
                                     {unitDiscount > 0 && (
-                                      <span className="ml-1.5 text-[color:var(--color-success-text)]">
+                                      <span className="ml-1.5 text-success-text">
                                         (-{formatSom(unitDiscount)}/dona chegirma)
                                       </span>
                                     )}
@@ -395,7 +395,7 @@ export default function SalesPage() {
                             <span>{formatSom(sale.subtotal)}</span>
                           </div>
                           {Number(sale.discountAmount) > 0 && (
-                            <div className="flex justify-between text-[color:var(--color-success-text)]">
+                            <div className="flex justify-between text-success-text">
                               <span>Umumiy chegirma</span>
                               <span>-{formatSom(sale.discountAmount)}</span>
                             </div>
@@ -414,7 +414,7 @@ export default function SalesPage() {
                           ))}
                         </div>
                         {sale.status === "VOIDED" && sale.voidedAt && (
-                          <div className="mt-2 text-xs text-[color:var(--color-error-text)]">
+                          <div className="mt-2 text-xs text-error-text">
                             Bekor qilingan:{" "}
                             {new Date(sale.voidedAt).toLocaleString("uz-UZ")}
                           </div>

@@ -84,7 +84,7 @@ export default function CategoriesPage() {
       </div>
 
       {rowError && (
-        <div className="mb-4 border border-[color:var(--color-error-border)] bg-[color:var(--color-error-bg)] px-3 py-2 text-sm text-[color:var(--color-error-text)]">
+        <div className="mb-4 border border-error-border bg-error-bg px-3 py-2 text-sm text-error-text">
           {rowError}
         </div>
       )}
@@ -103,7 +103,7 @@ export default function CategoriesPage() {
               [...Array(4)].map((_, i) => (
                 <tr key={i} className="border-b border-divider">
                   <td colSpan={3} className="px-4 py-3">
-                    <div className="h-4 bg-black/[.05] animate-pulse w-full" />
+                    <div className="h-4 bg-black/5 animate-pulse w-full" />
                   </td>
                 </tr>
               ))}
@@ -117,7 +117,7 @@ export default function CategoriesPage() {
             {status === "error" && (
               <tr>
                 <td colSpan={3} className="px-4 py-10 text-center">
-                  <span className="text-[color:var(--color-error-text)]">{error}</span>{" "}
+                  <span className="text-error-text">{error}</span>{" "}
                   <button onClick={load} className="text-accent underline ml-2">
                     Qayta urinish
                   </button>
@@ -167,7 +167,7 @@ export default function CategoriesPage() {
                           onClick={() => setDeletingCategory(c)}
                           disabled={c._count.products > 0 || busyId === c.id}
                           title={c._count.products > 0 ? "Bu kategoriyada tovarlar bor" : undefined}
-                          className="text-[color:var(--color-error-text)] hover:underline disabled:opacity-30 disabled:no-underline"
+                          className="text-error-text hover:underline disabled:opacity-30 disabled:no-underline"
                         >
                           O&apos;chirish
                         </button>
@@ -228,7 +228,7 @@ function ConfirmDeleteModal({
             type="button"
             onClick={onConfirm}
             disabled={busy}
-            className="font-condensed h-10 px-4 bg-[color:var(--color-error-text)] text-white font-semibold text-sm disabled:opacity-50"
+            className="font-condensed h-10 px-4 bg-error-text text-white font-semibold text-sm disabled:opacity-50"
           >
             O&apos;chirish
           </button>
@@ -272,7 +272,7 @@ function CreateCategoryModal({ onClose, onCreated }: { onClose: () => void; onCr
         />
 
         {error && (
-          <div className="mb-4 border border-[color:var(--color-error-border)] bg-[color:var(--color-error-bg)] px-3 py-2 text-sm text-[color:var(--color-error-text)]">
+          <div className="mb-4 border border-error-border bg-error-bg px-3 py-2 text-sm text-error-text">
             {error}
           </div>
         )}

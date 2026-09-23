@@ -142,7 +142,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   if (error) {
     return (
       <div className="p-6">
-        <span className="text-[color:var(--color-error-text)]">{error}</span>
+        <span className="text-error-text">{error}</span>
       </div>
     );
   }
@@ -212,7 +212,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                       <button
                         onClick={() => setRemovingUnit(u)}
                         disabled={unitBusyId === u.id}
-                        className="text-[color:var(--color-error-text)] hover:underline disabled:opacity-30"
+                        className="text-error-text hover:underline disabled:opacity-30"
                       >
                         O&apos;chirish
                       </button>
@@ -285,7 +285,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                   <td className="px-4 py-2">{new Date(m.occurredAt).toLocaleString("uz-UZ")}</td>
                   <td className="px-4 py-2">{TYPE_LABEL[m.type]}</td>
                   <td
-                    className={`px-4 py-2 ${qty >= 0 ? "text-[color:var(--color-success-text)]" : "text-[color:var(--color-error-text)]"}`}
+                    className={`px-4 py-2 ${qty >= 0 ? "text-success-text" : "text-error-text"}`}
                   >
                     {qty >= 0 ? "+" : ""}
                     {formatQty(qty)}
@@ -386,7 +386,7 @@ function EditProductModal({
         <input
           value={product.sku}
           disabled
-          className="w-full h-10 px-3 border border-divider mb-3 bg-black/[.03] text-text/50"
+          className="w-full h-10 px-3 border border-divider mb-3 bg-black/[0.03] text-text/50"
         />
 
         <label className="block text-sm mb-1 text-text/70">Nomi</label>
@@ -413,7 +413,7 @@ function EditProductModal({
         </select>
 
         {error && (
-          <div className="mb-4 border border-[color:var(--color-error-border)] bg-[color:var(--color-error-bg)] px-3 py-2 text-sm text-[color:var(--color-error-text)]">
+          <div className="mb-4 border border-error-border bg-error-bg px-3 py-2 text-sm text-error-text">
             {error}
           </div>
         )}
@@ -568,7 +568,7 @@ function AddUnitModal({
         </div>
 
         {error && (
-          <div className="mb-4 border border-[color:var(--color-error-border)] bg-[color:var(--color-error-bg)] px-3 py-2 text-sm text-[color:var(--color-error-text)]">
+          <div className="mb-4 border border-error-border bg-error-bg px-3 py-2 text-sm text-error-text">
             {error}
           </div>
         )}
@@ -614,7 +614,7 @@ function ConfirmRemoveUnitModal({
             type="button"
             onClick={onConfirm}
             disabled={busy}
-            className="font-condensed h-10 px-4 bg-[color:var(--color-error-text)] text-white font-semibold text-sm disabled:opacity-50"
+            className="font-condensed h-10 px-4 bg-error-text text-white font-semibold text-sm disabled:opacity-50"
           >
             O&apos;chirish
           </button>
@@ -715,7 +715,7 @@ function EditUnitPriceModal({
         </div>
 
         {error && (
-          <div className="mb-4 border border-[color:var(--color-error-border)] bg-[color:var(--color-error-bg)] px-3 py-2 text-sm text-[color:var(--color-error-text)]">
+          <div className="mb-4 border border-error-border bg-error-bg px-3 py-2 text-sm text-error-text">
             {error}
           </div>
         )}

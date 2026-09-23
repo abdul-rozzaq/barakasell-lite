@@ -70,7 +70,7 @@ interface StockRow {
 
 function StockTab() {
   const { data, error } = useReportData<StockRow[]>("/reports/stock");
-  if (error) return <div className="text-[color:var(--color-error-text)] text-sm">{error}</div>;
+  if (error) return <div className="text-error-text text-sm">{error}</div>;
   if (!data) return <div className="text-text/50 text-sm">Yuklanmoqda...</div>;
 
   return (
@@ -131,7 +131,7 @@ function ProfitTab() {
           </button>
         ))}
       </div>
-      {error && <div className="text-[color:var(--color-error-text)] text-sm">{error}</div>}
+      {error && <div className="text-error-text text-sm">{error}</div>}
       {!error && !data && <div className="text-text/50 text-sm">Yuklanmoqda...</div>}
       {data && (
         <div className="border border-divider bg-white">
@@ -183,7 +183,7 @@ interface ShiftRow {
 
 function ShiftsTab() {
   const { data, error } = useReportData<ShiftRow[]>("/shifts");
-  if (error) return <div className="text-[color:var(--color-error-text)] text-sm">{error}</div>;
+  if (error) return <div className="text-error-text text-sm">{error}</div>;
   if (!data) return <div className="text-text/50 text-sm">Yuklanmoqda...</div>;
 
   return (
@@ -221,10 +221,10 @@ function ShiftsTab() {
                     s.diffCash === null
                       ? "text-text/40"
                       : Number(s.diffCash) < 0
-                        ? "text-[color:var(--color-error-text)]"
+                        ? "text-error-text"
                         : Number(s.diffCash) > 0
-                          ? "text-[color:var(--color-warning-text)]"
-                          : "text-[color:var(--color-success-text)]"
+                          ? "text-warning-text"
+                          : "text-success-text"
                   }`}
                 >
                   {s.diffCash !== null ? formatSom(s.diffCash) : "—"}
@@ -254,7 +254,7 @@ interface DemandRow {
 
 function DemandTab() {
   const { data, error } = useReportData<DemandRow[]>("/reports/demand?days=30");
-  if (error) return <div className="text-[color:var(--color-error-text)] text-sm">{error}</div>;
+  if (error) return <div className="text-error-text text-sm">{error}</div>;
   if (!data) return <div className="text-text/50 text-sm">Yuklanmoqda...</div>;
 
   return (
@@ -296,7 +296,7 @@ function DemandTab() {
 
 function DeadStockTab() {
   const { data, error } = useReportData<DeadStockRow[]>("/reports/dead-stock?days=30");
-  if (error) return <div className="text-[color:var(--color-error-text)] text-sm">{error}</div>;
+  if (error) return <div className="text-error-text text-sm">{error}</div>;
   if (!data) return <div className="text-text/50 text-sm">Yuklanmoqda...</div>;
 
   return (
@@ -321,7 +321,7 @@ function DeadStockTab() {
               <tr key={r.productId} className="border-b border-divider last:border-0">
                 <td className="px-4 py-2.5">{r.name}</td>
                 <td className="px-4 py-2.5">{formatQty(r.stock)}</td>
-                <td className="px-4 py-2.5 text-[color:var(--color-warning-text)]">
+                <td className="px-4 py-2.5 text-warning-text">
                   {r.lastSoldAt ? new Date(r.lastSoldAt).toLocaleDateString("uz-UZ") : "Hech qachon"}
                 </td>
               </tr>

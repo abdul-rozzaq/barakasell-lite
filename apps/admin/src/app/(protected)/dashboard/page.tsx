@@ -37,8 +37,8 @@ interface DashboardData {
 }
 
 function diffColor(value: number) {
-  if (value > 0) return "text-[color:var(--color-success-text)]";
-  if (value < 0) return "text-[color:var(--color-error-text)]";
+  if (value > 0) return "text-success-text";
+  if (value < 0) return "text-error-text";
   return "text-text/70";
 }
 
@@ -54,7 +54,7 @@ export default function DashboardPage() {
   }, []);
 
   if (error) {
-    return <div className="p-6 text-[color:var(--color-error-text)]">{error}</div>;
+    return <div className="p-6 text-error-text">{error}</div>;
   }
   if (!data) {
     return <div className="p-6 text-text/60">Yuklanmoqda...</div>;
@@ -112,7 +112,7 @@ export default function DashboardPage() {
               data.lowStock.map((p) => (
                 <div key={p.id} className="flex justify-between px-4 py-2 border-b border-divider last:border-0 text-sm">
                   <span>{p.name}</span>
-                  <span className="font-condensed font-semibold text-[color:var(--color-error-text)]">
+                  <span className="font-condensed font-semibold text-error-text">
                     {formatQty(p.stock)}
                   </span>
                 </div>

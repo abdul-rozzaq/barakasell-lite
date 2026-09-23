@@ -73,7 +73,7 @@ export default function UsersPage() {
             )}
             {status === "error" && (
               <tr>
-                <td colSpan={5} className="px-4 py-10 text-center text-[color:var(--color-error-text)]">
+                <td colSpan={5} className="px-4 py-10 text-center text-error-text">
                   {error}
                 </td>
               </tr>
@@ -88,8 +88,8 @@ export default function UsersPage() {
                     <span
                       className={`px-2 py-0.5 text-xs border ${
                         u.status === "ACTIVE"
-                          ? "border-[color:var(--color-success-border)] text-[color:var(--color-success-text)]"
-                          : "border-[color:var(--color-error-border)] bg-[color:var(--color-error-bg)] text-[color:var(--color-error-text)]"
+                          ? "border-success-border text-success-text"
+                          : "border-error-border bg-error-bg text-error-text"
                       }`}
                     >
                       {u.status === "ACTIVE" ? "Faol" : "Bloklangan"}
@@ -223,7 +223,7 @@ function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreate
         )}
 
         {error && (
-          <div className="mb-4 border border-[color:var(--color-error-border)] bg-[color:var(--color-error-bg)] px-3 py-2 text-sm text-[color:var(--color-error-text)]">
+          <div className="mb-4 border border-error-border bg-error-bg px-3 py-2 text-sm text-error-text">
             {error}
           </div>
         )}
@@ -317,7 +317,7 @@ function ResetPinModal({ user, onClose, onDone }: { user: UserRow; onClose: () =
         )}
 
         {error && (
-          <div className="mb-4 border border-[color:var(--color-error-border)] bg-[color:var(--color-error-bg)] px-3 py-2 text-sm text-[color:var(--color-error-text)]">
+          <div className="mb-4 border border-error-border bg-error-bg px-3 py-2 text-sm text-error-text">
             {error}
           </div>
         )}

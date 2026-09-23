@@ -87,7 +87,7 @@ export default function SettingsPage() {
   }
 
   if (error && !settings) {
-    return <div className="p-6 text-[color:var(--color-error-text)]">{error}</div>;
+    return <div className="p-6 text-error-text">{error}</div>;
   }
   if (!settings) {
     return <div className="p-6 text-text/60">Yuklanmoqda...</div>;
@@ -235,7 +235,7 @@ export default function SettingsPage() {
         </button>
       </div>
 
-      {error && <div className="mt-4 text-sm text-[color:var(--color-error-text)]">{error}</div>}
+      {error && <div className="mt-4 text-sm text-error-text">{error}</div>}
     </div>
   );
 }
@@ -280,7 +280,7 @@ function TelegramLinkButton() {
       >
         Telegram&apos;ga ulash
       </button>
-      {error && <div className="mt-2 text-sm text-[color:var(--color-error-text)]">{error}</div>}
+      {error && <div className="mt-2 text-sm text-error-text">{error}</div>}
     </div>
   );
 }

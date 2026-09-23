@@ -701,3 +701,28 @@ Boshida muhokama qilingan, ataylab keyingi milestone'ga qoldirilgan:
 chek/накладной rasmini Vision model bilan o'qib, `Receipt` draft'ini
 avtomatik to'ldirish, fuzzy SKU moslashtirish, narx anomaliyasi
 ogohlantirishi. Hozircha kod yo'q.
+
+---
+
+## 2026-09-23: Yangilanishlar (Infinite Scroll, Pagination & Tailwind CSS Tozalash)
+
+### 1. Cheksiz aylantirish (Infinite Scroll) va Cursor-based Pagination
+- **Backend (`apps/api`)**:
+  - `ReceiptsController` va `ReceiptsService` da cursor-based pagination qo'shildi (`cursor`, `take`, `nextCursor`).
+- **Frontend (`apps/admin`)**:
+  - `ProductSelect.tsx` yangi komponenti yaratildi: `search` debounce, cheksiz aylantirish (`onScroll`), birliklar boshqaruvi va mavjud tanlangan tovarlarni yo'qotib qo'ymaslik kafolatlangan.
+  - `receipts/[id]/page.tsx` da qattiq `?take=200` o'rniga dinamik `ProductSelect` ulandi. Draft qabul qilingan tovarlar alohida load qilinadi.
+  - `receipts/page.tsx` va `sales/page.tsx` sahifalarida jadvallar uchun `IntersectionObserver` asosidagi cheksiz aylantirish ulandi.
+
+### 2. Tailwind CSS Canonical Classes Refaktoringi & Linter Tozalash
+- Barcha sahifalardagi `tailwindcss(suggestCanonicalClasses)` ogohlantirishlari to'liq bartaraf etildi:
+  - `[color:var(--color-error-text)]` -> `text-error-text`
+  - `[color:var(--color-error-bg)]` -> `bg-error-bg`
+  - `[color:var(--color-error-border)]` -> `border-error-border`
+  - `[color:var(--color-warning-text/bg/border)]` -> `text-warning-text`, `bg-warning-bg`, `border-warning-border`
+  - `[color:var(--color-success-text/border)]` -> `text-success-text`, `border-success-border`
+  - `[color:var(--color-accent-tint-bg/text)]` -> `bg-accent-tint-bg`, `text-accent-tint-text`
+  - `bg-black/[.05]` -> `bg-black/5`
+  - `hover:bg-black/[.02]` -> `hover:bg-black/[0.02]` (yetakchi nol qo'shildi)
+- Barcha qoidalar `apps/admin/CLAUDE.md` va `CLAUDE.md` ga kiritildi.
+

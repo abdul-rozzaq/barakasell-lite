@@ -111,7 +111,7 @@ export default function CustomersPage() {
           {status === "loading" && <div className="px-4 py-6 text-center text-text/50 text-sm">Yuklanmoqda...</div>}
           {status === "empty" && <div className="px-4 py-6 text-center text-text/50 text-sm">Mijoz topilmadi</div>}
           {status === "error" && (
-            <div className="px-4 py-6 text-center text-sm text-[color:var(--color-error-text)]">{error}</div>
+            <div className="px-4 py-6 text-center text-sm text-error-text">{error}</div>
           )}
           {status === "ok" &&
             items.map((c) => (
@@ -119,13 +119,13 @@ export default function CustomersPage() {
                 key={c.id}
                 onClick={() => setSelectedId(c.id)}
                 className={`w-full flex items-center justify-between px-4 py-3 border-b border-divider last:border-0 text-left text-sm ${
-                  selectedId === c.id ? "bg-accent-tint-bg" : "hover:bg-black/[.02]"
+                  selectedId === c.id ? "bg-accent-tint-bg" : "hover:bg-black/[0.02]"
                 }`}
               >
                 <span>{c.name}</span>
                 <span
                   className={
-                    Number(c.debtBalance) > 0 ? "text-[color:var(--color-error-text)]" : "text-text/50"
+                    Number(c.debtBalance) > 0 ? "text-error-text" : "text-text/50"
                   }
                 >
                   {formatSom(c.debtBalance)}
@@ -150,7 +150,7 @@ export default function CustomersPage() {
                 <div className="text-sm text-text/60">Joriy qarz</div>
                 <div
                   className={`font-condensed text-2xl font-bold mt-1 ${
-                    Number(detail.debtBalance) > 0 ? "text-[color:var(--color-error-text)]" : ""
+                    Number(detail.debtBalance) > 0 ? "text-error-text" : ""
                   }`}
                 >
                   {formatSom(detail.debtBalance)}
@@ -208,8 +208,8 @@ export default function CustomersPage() {
                         <td
                           className={`px-4 py-2.5 ${
                             Number(e.amount) < 0
-                              ? "text-[color:var(--color-success-text)]"
-                              : "text-[color:var(--color-error-text)]"
+                              ? "text-success-text"
+                              : "text-error-text"
                           }`}
                         >
                           {Number(e.amount) > 0 ? "+" : ""}
@@ -280,7 +280,7 @@ function CreateCustomerModal({ onClose, onCreated }: { onClose: () => void; onCr
         />
 
         {error && (
-          <div className="mb-4 border border-[color:var(--color-error-border)] bg-[color:var(--color-error-bg)] px-3 py-2 text-sm text-[color:var(--color-error-text)]">
+          <div className="mb-4 border border-error-border bg-error-bg px-3 py-2 text-sm text-error-text">
             {error}
           </div>
         )}
