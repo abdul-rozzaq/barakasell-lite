@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { formatSom } from "@/lib/format";
 
@@ -152,13 +152,18 @@ export default function SalesPage() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [voidTarget, setVoidTarget] = useState<SaleRow | null>(null);
   const [voidingId, setVoidingId] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   const load = useCallback(() => {
     setStatus("loading");
     api
-      .get<SaleRow[]>("/sales?take=200")
+      .get<SaleRow[]>("/sales?take=30")
       .then((res) => {
         setItems(res);
+        setHasMore(res.length === 30);
         setStatus(res.length === 0 ? "empty" : "ok");
       })
       .catch((err) => {
@@ -167,9 +172,44 @@ export default function SalesPage() {
       });
   }, []);
 
+  const loadMore = useCallback(() => {
+    if (!hasMore || loadingMore || items.length === 0) return;
+    setLoadingMore(true);
+    const lastId = items[items.length - 1].id;
+    api
+      .get<SaleRow[]>(`/sales?take=30&cursor=${encodeURIComponent(lastId)}`)
+      .then((res) => {
+        setItems((prev) => [...prev, ...res]);
+        setHasMore(res.length === 30);
+      })
+      .catch((err) => {
+        console.error("Keyingi sotuvlarni yuklashda xatolik:", err);
+      })
+      .finally(() => {
+        setLoadingMore(false);
+      });
+  }, [hasMore, loadingMore, items]);
+
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || !hasMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          loadMore();
+        }
+      },
+      { rootMargin: "200px" },
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasMore, loadMore]);
 
   async function handleVoid(code: string) {
     if (!voidTarget) return;
@@ -386,6 +426,14 @@ export default function SalesPage() {
               ))}
           </tbody>
         </table>
+
+        {loadingMore && (
+          <div className="p-3 text-center text-xs text-text/60 border-t border-divider bg-black/[0.02]">
+            Sotuvlar yuklanmoqda...
+          </div>
+        )}
+
+        {hasMore && <div ref={sentinelRef} className="h-4 w-full" />}
       </div>
 
       {/* TOTP Confirmation Modal */}

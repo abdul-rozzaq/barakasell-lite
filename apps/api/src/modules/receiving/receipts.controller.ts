@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ReceiptsService } from './receipts.service.js';
 import { CreateReceiptDto } from './dto/create-receipt.dto.js';
 import {
@@ -11,8 +11,14 @@ export class ReceiptsController {
   constructor(private readonly receiptsService: ReceiptsService) {}
 
   @Get()
-  findAll() {
-    return this.receiptsService.findAll();
+  findAll(
+    @Query('cursor') cursor?: string,
+    @Query('take') take?: string,
+  ) {
+    return this.receiptsService.findAll({
+      cursor,
+      take: take ? Number(take) : undefined,
+    });
   }
 
   @Get(':id')

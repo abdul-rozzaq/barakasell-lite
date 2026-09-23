@@ -25,12 +25,21 @@ export class ReceiptsService {
     private readonly waitlistService: WaitlistService,
   ) {}
 
-  findAll() {
-    return this.prisma.receipt.findMany({
+  async findAll(params?: { cursor?: string; take?: number }) {
+    const take = Math.min(params?.take ?? 50, 200);
+    const items = await this.prisma.receipt.findMany({
       include: { supplier: true },
       orderBy: { createdAt: 'desc' },
-      take: 200,
+      take: take + 1,
+      ...(params?.cursor ? { cursor: { id: params.cursor }, skip: 1 } : {}),
     });
+
+    const hasMore = items.length > take;
+    const pageItems = hasMore ? items.slice(0, take) : items;
+    return {
+      items: pageItems,
+      nextCursor: hasMore ? pageItems[pageItems.length - 1].id : null,
+    };
   }
 
   async findOne(id: string) {

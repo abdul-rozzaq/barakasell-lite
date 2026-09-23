@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
 
@@ -12,6 +12,11 @@ interface ReceiptRow {
   supplier: { name: string } | null;
 }
 
+interface ReceiptsResponse {
+  items: ReceiptRow[];
+  nextCursor: string | null;
+}
+
 const STATUS_LABEL: Record<ReceiptRow["status"], string> = {
   DRAFT: "Qoralama",
   POSTED: "Tasdiqlangan",
@@ -20,21 +25,75 @@ const STATUS_LABEL: Record<ReceiptRow["status"], string> = {
 
 export default function ReceiptsPage() {
   const [items, setItems] = useState<ReceiptRow[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [status, setStatus] = useState<"loading" | "ok" | "empty" | "error">("loading");
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    api
-      .get<ReceiptRow[]>("/receipts")
-      .then((res) => {
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  const loadInitial = useCallback(async () => {
+    setStatus("loading");
+    setError(null);
+    try {
+      const res = await api.get<ReceiptsResponse | ReceiptRow[]>("/receipts?take=30");
+      if (Array.isArray(res)) {
         setItems(res);
+        setNextCursor(null);
         setStatus(res.length === 0 ? "empty" : "ok");
-      })
-      .catch((err) => {
-        setError(err instanceof ApiError ? err.message : "Xatolik yuz berdi");
-        setStatus("error");
-      });
+      } else {
+        setItems(res.items);
+        setNextCursor(res.nextCursor);
+        setStatus(res.items.length === 0 ? "empty" : "ok");
+      }
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Xatolik yuz berdi");
+      setStatus("error");
+    }
   }, []);
+
+  const loadMore = useCallback(async () => {
+    if (!nextCursor || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const res = await api.get<ReceiptsResponse | ReceiptRow[]>(
+        `/receipts?cursor=${encodeURIComponent(nextCursor)}&take=30`,
+      );
+      if (Array.isArray(res)) {
+        setItems((prev) => [...prev, ...res]);
+        setNextCursor(null);
+      } else {
+        setItems((prev) => [...prev, ...res.items]);
+        setNextCursor(res.nextCursor);
+      }
+    } catch (err) {
+      console.error("Keyingi sahifani yuklashda xatolik:", err);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [nextCursor, loadingMore]);
+
+  useEffect(() => {
+    loadInitial();
+  }, [loadInitial]);
+
+  // Infinite scroll via IntersectionObserver
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || !nextCursor) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          loadMore();
+        }
+      },
+      { rootMargin: "200px" },
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [nextCursor, loadMore]);
 
   return (
     <div className="p-6">
@@ -62,7 +121,7 @@ export default function ReceiptsPage() {
             {status === "loading" && (
               <tr>
                 <td colSpan={4} className="px-4 py-3">
-                  <div className="h-4 bg-black/[.05] animate-pulse w-full" />
+                  <div className="h-4 bg-black/5 animate-pulse w-full" />
                 </td>
               </tr>
             )}
@@ -75,14 +134,14 @@ export default function ReceiptsPage() {
             )}
             {status === "error" && (
               <tr>
-                <td colSpan={4} className="px-4 py-10 text-center text-[color:var(--color-error-text)]">
+                <td colSpan={4} className="px-4 py-10 text-center text-error-text">
                   {error}
                 </td>
               </tr>
             )}
             {status === "ok" &&
               items.map((r) => (
-                <tr key={r.id} className="border-b border-divider last:border-0 hover:bg-black/[.02]">
+                <tr key={r.id} className="border-b border-divider last:border-0 hover:bg-black/2">
                   <td className="px-4 py-2.5">
                     <Link href={`/receipts/${r.id}`} className="text-accent-dark hover:underline font-medium">
                       {r.code}
@@ -94,9 +153,9 @@ export default function ReceiptsPage() {
                     <span
                       className={`px-2 py-0.5 text-xs border ${
                         r.status === "POSTED"
-                          ? "border-[color:var(--color-success-border)] text-[color:var(--color-success-text)]"
+                          ? "border-success-border text-success-text"
                           : r.status === "DRAFT"
-                            ? "border-[color:var(--color-warning-border)] bg-[color:var(--color-warning-bg)] text-[color:var(--color-warning-text)]"
+                            ? "border-warning-border bg-warning-bg text-warning-text"
                             : "border-divider text-text/50"
                       }`}
                     >
@@ -107,7 +166,31 @@ export default function ReceiptsPage() {
               ))}
           </tbody>
         </table>
+
+        {/* Loading more indicator */}
+        {loadingMore && (
+          <div className="p-3 text-center text-xs text-text/60 border-t border-divider bg-black/2">
+            Kirimlar yuklanmoqda...
+          </div>
+        )}
+
+        {/* Intersection Sentinel element */}
+        {nextCursor && (
+          <div ref={sentinelRef} className="h-4 w-full" />
+        )}
       </div>
+
+      {/* Manual fallback button in case observer doesn't fire */}
+      {nextCursor && !loadingMore && (
+        <div className="mt-4 text-center">
+          <button
+            onClick={loadMore}
+            className="text-xs text-accent hover:underline py-1.5 px-3 border border-divider bg-white"
+          >
+            Yana yuklash
+          </button>
+        </div>
+      )}
     </div>
   );
 }

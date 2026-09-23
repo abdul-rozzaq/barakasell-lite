@@ -5,16 +5,11 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
 import { formatSom, formatQty, formatMoneyInput, parseMoney } from "@/lib/format";
+import { ProductSelect, type ProductOption } from "@/components/ProductSelect";
 
 interface Supplier {
   id: string;
   name: string;
-}
-
-interface ProductOption {
-  id: string;
-  name: string;
-  units: { label: string; factor: string; price: string }[];
 }
 
 interface DraftLine {
@@ -58,23 +53,49 @@ export default function ReceiptDocPage({ params }: { params: Promise<{ id: strin
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
+  const handleProductsLoaded = useCallback((newProducts: ProductOption[]) => {
+    setProducts((prev) => {
+      const existingIds = new Set(prev.map((p) => p.id));
+      const filtered = newProducts.filter((p) => !existingIds.has(p.id));
+      return [...prev, ...filtered];
+    });
+  }, []);
+
   const load = useCallback(async () => {
     const [sup, prod] = await Promise.all([
       api.get<Supplier[]>("/suppliers"),
-      api.get<{ items: ProductOption[] }>("/products?take=200"),
+      api.get<{ items: ProductOption[] }>("/products?take=50"),
     ]);
     setSuppliers(sup);
-    setProducts(prod.items);
+    let allProducts = prod.items;
+    setProducts(allProducts);
 
     if (!isNew) {
       const r = await api.get<ReceiptDetail>(`/receipts/${id}`);
       setReceipt(r);
       setSupplierId(r.supplierId ?? "");
       setNote(r.note ?? "");
+
+      // If any product from existing receipt lines is missing from first page, fetch it
+      const missingIds = r.lines
+        .map((l) => l.productId)
+        .filter((pid) => pid && !allProducts.some((p) => p.id === pid));
+
+      if (missingIds.length > 0) {
+        const fetched = await Promise.all(
+          missingIds.map((pid) =>
+            api.get<ProductOption>(`/products/${pid}`).catch(() => null),
+          ),
+        );
+        const validFetched = fetched.filter((p): p is ProductOption => p !== null);
+        allProducts = [...allProducts, ...validFetched];
+        setProducts(allProducts);
+      }
+
       setLines(
         r.lines.map((l) => ({
           productId: l.productId,
-          productName: prod.items.find((p) => p.id === l.productId)?.name ?? l.productId,
+          productName: allProducts.find((p) => p.id === l.productId)?.name ?? l.productId,
           unitLabel: l.unitLabel,
           qtyInUnit: l.qtyInUnit,
           unitCostPack: formatMoneyInput(l.unitCostPack),
@@ -88,7 +109,19 @@ export default function ReceiptDocPage({ params }: { params: Promise<{ id: strin
   }, [load]);
 
   function addLine() {
-    if (products.length === 0) return;
+    if (products.length === 0) {
+      setLines((prev) => [
+        ...prev,
+        {
+          productId: "",
+          productName: "",
+          unitLabel: "",
+          qtyInUnit: "",
+          unitCostPack: "",
+        },
+      ]);
+      return;
+    }
     const first = products[0];
     const firstUnit = first.units[0];
     setLines((prev) => [
@@ -119,10 +152,16 @@ export default function ReceiptDocPage({ params }: { params: Promise<{ id: strin
     setError(null);
     setSaving(true);
     try {
+      const validLines = lines.filter((l) => l.productId);
+      if (validLines.length === 0) {
+        setError("Kamida bitta tovar tanlangan bo'lishi kerak");
+        setSaving(false);
+        return;
+      }
       const payload = {
         supplierId: supplierId || undefined,
         note: note || undefined,
-        lines: lines.map((l) => ({
+        lines: validLines.map((l) => ({
           productId: l.productId,
           unitLabel: l.unitLabel,
           qtyInUnit: Number(l.qtyInUnit),
@@ -221,26 +260,20 @@ export default function ReceiptDocPage({ params }: { params: Promise<{ id: strin
           )}
           {lines.map((line, i) => (
             <tr key={i} className="border-b border-divider last:border-0">
-              <td className="px-3 py-2">
+              <td className="px-3 py-2 min-w-55">
                 {isDraft ? (
-                  <select
+                  <ProductSelect
                     value={line.productId}
-                    onChange={(e) => {
-                      const p = products.find((pr) => pr.id === e.target.value);
+                    selectedName={line.productName}
+                    onChange={(product) => {
                       updateLine(i, {
-                        productId: e.target.value,
-                        productName: p?.name ?? "",
-                        unitLabel: p?.units[0]?.label ?? "",
+                        productId: product.id,
+                        productName: product.name,
+                        unitLabel: product.units[0]?.label ?? "",
                       });
                     }}
-                    className="h-9 px-2 border border-divider min-w-40"
-                  >
-                    {products.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
+                    onProductsLoaded={handleProductsLoaded}
+                  />
                 ) : (
                   line.productName
                 )}
