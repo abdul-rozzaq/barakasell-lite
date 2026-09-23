@@ -9,5 +9,6 @@ import { WaitlistModule } from '../waitlist/waitlist.module.js';
   imports: [WaitlistModule],
   controllers: [ReceiptsController, SuppliersController],
   providers: [ReceiptsService, SuppliersService],
+  exports: [ReceiptsService],
 })
 export class ReceivingModule {}

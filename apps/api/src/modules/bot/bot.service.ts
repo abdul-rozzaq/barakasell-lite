@@ -6,6 +6,8 @@ import { ProductsService, type StockFilter } from '../catalog/products.service.j
 import { ReportsService } from '../reports/reports.service.js';
 import { OwnerLinkService } from '../owner-link/owner-link.service.js';
 import { WaitlistService } from '../waitlist/waitlist.service.js';
+import { ReceiptsService } from '../receiving/receipts.service.js';
+import { ReceiptOcrService, type OcrReceiptLine } from '../receipt-ocr/receipt-ocr.service.js';
 
 // Plain interfaces, not class-validator DTOs — the Telegram bot now calls
 // this service directly, in-process, so there's no HTTP body to validate.
@@ -31,6 +33,8 @@ export class BotService {
     private readonly reportsService: ReportsService,
     private readonly ownerLinkService: OwnerLinkService,
     private readonly waitlistService: WaitlistService,
+    private readonly receiptsService: ReceiptsService,
+    private readonly receiptOcrService: ReceiptOcrService,
   ) {}
 
   // Idempotent: re-registering the same Telegram account (e.g. re-running
@@ -169,6 +173,55 @@ export class BotService {
       rawText: dto.rawText,
       source: 'BOT',
     });
+  }
+
+  // --- Receipt OCR (owner sends a photo of a supplier invoice) ----------
+  // No review UI in Telegram, so this always creates a DRAFT — never POSTs.
+  // Only cleanly matched lines become receipt lines; anything uncertain or
+  // unmatched is preserved as raw text in `note` so it isn't silently lost,
+  // and the owner is told to finish the review in the admin panel.
+  async ocrReceiptDraft(images: { buffer: Buffer; mimeType: string }[], userId: string) {
+    const result = await this.receiptOcrService.parse(images);
+    const matchedLines: (OcrReceiptLine & { productId: string })[] = [];
+    const unresolvedLines: OcrReceiptLine[] = [];
+    for (const line of result.lines) {
+      if (line.status === 'matched' && line.productId) {
+        matchedLines.push(line as OcrReceiptLine & { productId: string });
+      } else {
+        unresolvedLines.push(line);
+      }
+    }
+
+    if (matchedLines.length === 0) {
+      return { receipt: null, matchedCount: 0, unresolvedNames: unresolvedLines.map((l) => l.rawName) };
+    }
+
+    const noteParts: string[] = [];
+    if (result.supplierName && !result.supplierId) {
+      noteParts.push(`Yetkazib beruvchi (aniqlanmadi): ${result.supplierName}`);
+    }
+    if (unresolvedLines.length > 0) {
+      noteParts.push(
+        'Rasmdan aniqlanmagan qatorlar: ' +
+          unresolvedLines.map((l) => `${l.rawName} (${l.qty} x ${l.unitCostPack})`).join('; '),
+      );
+    }
+
+    const receipt = await this.receiptsService.create(
+      {
+        supplierId: result.supplierId ?? undefined,
+        note: noteParts.length > 0 ? noteParts.join('\n') : undefined,
+        lines: matchedLines.map((l) => ({
+          productId: l.productId,
+          unitLabel: l.unitLabel,
+          qtyInUnit: l.qty,
+          unitCostPack: l.unitCostPack,
+        })),
+      },
+      userId,
+    );
+
+    return { receipt, matchedCount: matchedLines.length, unresolvedNames: unresolvedLines.map((l) => l.rawName) };
   }
 
   // --- Notification outbox (polled by apps/bot) --------------------------

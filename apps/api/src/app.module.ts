@@ -10,6 +10,7 @@ import { AuditModule } from './modules/audit/audit.module.js';
 import { CatalogModule } from './modules/catalog/catalog.module.js';
 import { InventoryModule } from './modules/inventory/inventory.module.js';
 import { ReceivingModule } from './modules/receiving/receiving.module.js';
+import { ReceiptOcrModule } from './modules/receipt-ocr/receipt-ocr.module.js';
 import { CountsModule } from './modules/counts/counts.module.js';
 import { ReportsModule } from './modules/reports/reports.module.js';
 import { FiscalModule } from './modules/fiscal/fiscal.module.js';
@@ -36,6 +37,7 @@ import { TotpModule } from './common/totp/totp.module.js';
     InventoryModule,
     CatalogModule,
     ReceivingModule,
+    ReceiptOcrModule,
     CountsModule,
     ReportsModule,
     FiscalModule,

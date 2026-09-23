@@ -65,7 +65,10 @@ export default function CustomersPage() {
   }, [load]);
 
   const loadDetail = useCallback((id: string) => {
-    api.get<CustomerDetail>(`/customers/${id}`).then(setDetail).catch(() => setDetail(null));
+    api
+      .get<CustomerDetail>(`/customers/${id}`)
+      .then(setDetail)
+      .catch(() => setDetail(null));
   }, []);
 
   useEffect(() => {
@@ -108,8 +111,12 @@ export default function CustomersPage() {
           className="w-full h-10 px-3 border border-divider bg-white text-sm mb-3 outline-none focus:border-accent"
         />
         <div className="border border-divider bg-white">
-          {status === "loading" && <div className="px-4 py-6 text-center text-text/50 text-sm">Yuklanmoqda...</div>}
-          {status === "empty" && <div className="px-4 py-6 text-center text-text/50 text-sm">Mijoz topilmadi</div>}
+          {status === "loading" && (
+            <div className="px-4 py-6 text-center text-text/50 text-sm">Yuklanmoqda...</div>
+          )}
+          {status === "empty" && (
+            <div className="px-4 py-6 text-center text-text/50 text-sm">Mijoz topilmadi</div>
+          )}
           {status === "error" && (
             <div className="px-4 py-6 text-center text-sm text-error-text">{error}</div>
           )}
@@ -119,15 +126,11 @@ export default function CustomersPage() {
                 key={c.id}
                 onClick={() => setSelectedId(c.id)}
                 className={`w-full flex items-center justify-between px-4 py-3 border-b border-divider last:border-0 text-left text-sm ${
-                  selectedId === c.id ? "bg-accent-tint-bg" : "hover:bg-black/[0.02]"
+                  selectedId === c.id ? "bg-accent-tint-bg" : "hover:bg-black/2"
                 }`}
               >
                 <span>{c.name}</span>
-                <span
-                  className={
-                    Number(c.debtBalance) > 0 ? "text-error-text" : "text-text/50"
-                  }
-                >
+                <span className={Number(c.debtBalance) > 0 ? "text-error-text" : "text-text/50"}>
                   {formatSom(c.debtBalance)}
                 </span>
               </button>
@@ -143,7 +146,9 @@ export default function CustomersPage() {
         ) : (
           <div>
             <h2 className="font-condensed text-2xl font-bold mb-1">{detail.name}</h2>
-            <div className="text-sm text-text/60 mb-5">{detail.phone ?? "Telefon kiritilmagan"}</div>
+            <div className="text-sm text-text/60 mb-5">
+              {detail.phone ?? "Telefon kiritilmagan"}
+            </div>
 
             <div className="grid grid-cols-2 gap-4 mb-6 max-w-md">
               <div className="p-4 bg-surface">
@@ -166,7 +171,9 @@ export default function CustomersPage() {
               {detail.cardCode ? (
                 <div>
                   <div className="text-sm text-text/60">Karta kodi</div>
-                  <div className="font-condensed text-lg font-bold tracking-wider">{detail.cardCode}</div>
+                  <div className="font-condensed text-lg font-bold tracking-wider">
+                    {detail.cardCode}
+                  </div>
                 </div>
               ) : (
                 <div className="text-sm text-text/60">Karta hali yaratilmagan</div>
@@ -203,13 +210,13 @@ export default function CustomersPage() {
                   ) : (
                     detail.entries.map((e) => (
                       <tr key={e.id} className="border-b border-divider last:border-0">
-                        <td className="px-4 py-2.5">{new Date(e.occurredAt).toLocaleString("uz-UZ")}</td>
+                        <td className="px-4 py-2.5">
+                          {new Date(e.occurredAt).toLocaleString("uz-UZ")}
+                        </td>
                         <td className="px-4 py-2.5">{ENTRY_LABEL[e.type]}</td>
                         <td
                           className={`px-4 py-2.5 ${
-                            Number(e.amount) < 0
-                              ? "text-success-text"
-                              : "text-error-text"
+                            Number(e.amount) < 0 ? "text-success-text" : "text-error-text"
                           }`}
                         >
                           {Number(e.amount) > 0 ? "+" : ""}
@@ -239,7 +246,13 @@ export default function CustomersPage() {
   );
 }
 
-function CreateCustomerModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+function CreateCustomerModal({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated: () => void;
+}) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -286,7 +299,11 @@ function CreateCustomerModal({ onClose, onCreated }: { onClose: () => void; onCr
         )}
 
         <div className="flex gap-2 justify-end">
-          <button type="button" onClick={onClose} className="h-10 px-4 border border-divider text-sm">
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-10 px-4 border border-divider text-sm"
+          >
             Bekor qilish
           </button>
           <button

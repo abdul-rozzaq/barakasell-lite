@@ -4,6 +4,18 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module.js';
 import { BotService } from '../src/modules/bot/bot.service.js';
+import { OPENAI_CLIENT } from '../src/modules/receipt-ocr/openai.provider.js';
+
+// Reassigned per OCR test; the fake client reads it lazily at call time —
+// see receipt-ocr.e2e-spec.ts for why one module compile can serve every test.
+let ocrResponseContent = '{"lines":[]}';
+const fakeOpenAiClient = {
+  chat: {
+    completions: {
+      create: async () => ({ choices: [{ message: { content: ocrResponseContent } }] }),
+    },
+  },
+};
 
 // The Telegram bot now calls BotService directly, in-process — there is no
 // more HTTP surface for register/link/search/reports to exercise. These
@@ -16,9 +28,13 @@ describe('BotService (e2e)', () => {
   let adminToken: string;
 
   beforeEach(async () => {
+    ocrResponseContent = '{"lines":[]}';
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideProvider(OPENAI_CLIENT)
+      .useValue(fakeOpenAiClient)
+      .compile();
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api');
     app.useGlobalPipes(
@@ -141,5 +157,39 @@ describe('BotService (e2e)', () => {
 
     const openShifts = await botService.openShifts();
     expect(Array.isArray(openShifts)).toBe(true);
+  });
+
+  it('creates a DRAFT receipt from matched OCR lines and keeps unresolved text in note', async () => {
+    const sku = `SKU-BOT-OCR-${Date.now()}`;
+    const name = `Bot OCR tovari ${Date.now()}`;
+    const admin = await request(app.getHttpServer())
+      .post('/api/products')
+      .set(auth())
+      .send({ sku, name, units: [{ label: 'dona', factor: 1, price: 3000, isBase: true }] })
+      .expect(201);
+    void admin;
+
+    const usersRes = await request(app.getHttpServer()).get('/api/users').set(auth());
+    const adminUserId = usersRes.body.find((u: { role: string }) => u.role === 'ADMIN').id;
+
+    ocrResponseContent = JSON.stringify({
+      supplierName: 'Noma\'lum yetkazuvchi XYZ',
+      lines: [
+        { rawName: name, qty: 3, unitLabel: 'dona', unitPrice: 2800, lineTotal: 8400 },
+        { rawName: 'Butunlay boshqa narsa ABC', qty: 1, unitPrice: 1000 },
+      ],
+    });
+
+    const result = await botService.ocrReceiptDraft(
+      [{ buffer: Buffer.from('fake-jpeg'), mimeType: 'image/jpeg' }],
+      adminUserId,
+    );
+
+    expect(result.receipt).not.toBeNull();
+    expect(result.matchedCount).toBe(1);
+    expect(result.unresolvedNames).toEqual(['Butunlay boshqa narsa ABC']);
+    expect(result.receipt!.status).toBe('DRAFT');
+    expect(result.receipt!.note).toContain('Butunlay boshqa narsa ABC');
+    expect(result.receipt!.note).toContain("Noma'lum yetkazuvchi XYZ");
   });
 });

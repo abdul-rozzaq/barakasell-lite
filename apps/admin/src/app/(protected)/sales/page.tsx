@@ -282,7 +282,7 @@ export default function SalesPage() {
               items.map((sale) => (
                 <Fragment key={sale.id}>
                   <tr
-                    className={`border-b border-divider hover:bg-black/[0.02] ${sale.status === "VOIDED" ? "opacity-50" : ""}`}
+                    className={`border-b border-divider hover:bg-black/2 ${sale.status === "VOIDED" ? "opacity-50" : ""}`}
                   >
                     <td className="px-4 py-2.5">
                       <button
@@ -339,7 +339,7 @@ export default function SalesPage() {
 
                   {/* Expanded detail row */}
                   {expanded === sale.id && (
-                    <tr key={`${sale.id}-detail`} className="border-b border-divider bg-black/[0.01]">
+                    <tr key={`${sale.id}-detail`} className="border-b border-divider bg-black/1">
                       <td colSpan={7} className="px-6 py-4">
                         <div className="text-xs text-text/60 mb-2 font-medium uppercase tracking-wide">
                           Tovarlar
@@ -428,7 +428,7 @@ export default function SalesPage() {
         </table>
 
         {loadingMore && (
-          <div className="p-3 text-center text-xs text-text/60 border-t border-divider bg-black/[0.02]">
+          <div className="p-3 text-center text-xs text-text/60 border-t border-divider bg-black/2">
             Sotuvlar yuklanmoqda...
           </div>
         )}

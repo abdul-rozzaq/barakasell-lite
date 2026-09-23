@@ -22,8 +22,11 @@ export function setToken(token: string | null) {
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
+  // FormData bodies must NOT get an explicit Content-Type — the browser sets
+  // one with the multipart boundary itself; overriding it breaks parsing.
+  const isFormData = options.body instanceof FormData;
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
+    ...(isFormData ? {} : { "Content-Type": "application/json" }),
     ...(options.headers as Record<string, string>),
   };
   if (token) headers.Authorization = `Bearer ${token}`;
@@ -43,6 +46,7 @@ export const api = {
   get: <T>(path: string) => request<T>(path),
   post: <T>(path: string, data?: unknown, extraHeaders?: Record<string, string>) =>
     request<T>(path, { method: "POST", body: data ? JSON.stringify(data) : undefined, headers: extraHeaders }),
+  postForm: <T>(path: string, form: FormData) => request<T>(path, { method: "POST", body: form }),
   patch: <T>(path: string, data?: unknown, extraHeaders?: Record<string, string>) =>
     request<T>(path, {
       method: "PATCH",

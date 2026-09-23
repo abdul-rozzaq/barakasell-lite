@@ -102,8 +102,12 @@ chiqadigan muammolar:
 
 ## Scope'dan tashqari (qilmang)
 
-Ko'p do'kon, ko'p ombor, ombor transferi, fiskal chek, loyalty dastur,
-hodim maoshi, chek chop etish.
+Ko'p do'kon, ko'p ombor, ombor transferi, fiskal chek, hodim maoshi, chek
+chop etish.
+
+(Loyalty dastur asl rejada shu ro'yxatda edi, lekin 3-milestone'da amalga
+oshirildi — pastdagi "Kelajakdagi rejalar" bo'limiga qarang, batafsili
+`PROGRESS.md`da.)
 
 ---
 
@@ -127,9 +131,6 @@ bo'limida. Bu yerda faqat ro'yxat, aniq boshlash vaqti belgilanmagan:
    (smena ochilishi/yopilishi, katta kassa farqi, sotuv bekor qilinishi)
    va bot tomonida `@Cron` bilan kunlik/haftalik xulosa qo'shish kerak.
 
-2. **Kirim (chek/faktura) AI OCR.** Chek/накладной rasmini Vision model
-   bilan o'qib, `Receipt` draft'ini avtomatik to'ldirish, fuzzy SKU
-   moslashtirish, narx anomaliyasi ogohlantirishi. Butunlay yangi qatlam
-   (fayl yuklash + Vision API + moslashtirish UI) — mavjud pattern'larga
-   sodda ravishda o'xshamaydi, alohida reja/tadqiqot bilan boshlanishi
-   kerak.
+2. ~~**Kirim (chek/faktura) AI OCR.**~~ **Tugallandi (2026-09-23)** —
+   `modules/receipt-ocr/`, admin panel + Telegram bot. Batafsil:
+   `PROGRESS.md`ning "Kirim (chek/faktura) AI OCR" bo'limi.

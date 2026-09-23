@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+/* Tailwind v4 auto-scans the whole project for class-like tokens with no
+   explicit content config. CLAUDE.md's "noto'g'ri" (wrong) column shows
+   literal arbitrary-value examples like [color:var(--color-accent)] as
+   documentation — Tailwind was picking those up and generating invalid CSS
+   from one placeholder example (`var(...)`), crashing the build. */
+@source not "../../CLAUDE.md";
+@source not "../../../../CLAUDE.md";
+
 :root {
   --color-bg: #f2f2f3;
   --color-surface: #e9e9ea;

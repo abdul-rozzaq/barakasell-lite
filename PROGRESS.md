@@ -1,6 +1,6 @@
 # BarakaSELL Lite — progress
 
-Oxirgi yangilanish: 2026-09-22. To'liq spec: `plan/plan.md`. Dizayn handoff:
+Oxirgi yangilanish: 2026-09-23. To'liq spec: `plan/plan.md`. Dizayn handoff:
 `plan/design_handoff_barakasell_lite/README.md`.
 
 ## Holat
@@ -19,6 +19,11 @@ ilova emas** — API process'ining bir qismi) orqali mijoz/egasi savol
 beradi (DeepSeek AI agent), mijoz kartasini skanerlaydi, tugagan tovar
 uchun so'rov qoldiradi — kirim kelganda avtomatik xabar oladi.
 Batafsil: pastdagi "Loyalty" va "Telegram bot + AI agent" bo'limlari.
+
+**Yangi (2026-09-23)**: Kirim (chek/faktura) AI OCR — admin panel va
+Telegram botda faktura rasmi yuklansa, OpenAI vision `Receipt` DRAFT'ini
+avtomatik to'ldiradi (inson tekshirib tasdiqlaydi, avtomatik POST YO'Q).
+Batafsil: pastdagi "Kirim (chek/faktura) AI OCR" bo'limi.
 
 **Qolgan ish**: Excel import (`ImportJob`/`ImportRow` — hali kod yo'q) va
 egasi uchun hodisaviy/vaqtli bildirishnomalar (smena yopilishi, kassa
@@ -438,9 +443,19 @@ ushlandi (ikkalasi ham endi tuzatilgan, testlar bilan qoplangan):
 
 ---
 
-## Testlar (41 unit + 56 e2e, hammasi o'tadi)
+## Testlar (65 unit + 62 e2e, hammasi o'tadi)
 
-**Unit** (41 test, DB'siz, `pnpm --filter @barakasell/api test`):
+**Unit** (65 test, DB'siz, `pnpm --filter @barakasell/api test`):
+- `modules/receipt-ocr/ocr-match.util.spec.ts` (18) — normalizatsiya
+  (**+ kirill->lotin fallback transliteratsiya**), Dice skori + SKU
+  bonusi (**+ kirill/lotin aralash moslashtirish**), uchta bucket
+  chegarasi, birlik moslashtirish (bazaga fallback), ikkala narx
+  ogohlantirishi.
+- `modules/receipt-ocr/receipt-ocr.service.spec.ts` (6) — soxta OpenAI
+  client bilan: to'g'ri parse+moslashtirish, buzuq JSON, API xatosi,
+  mos kelmagan qator `unmatched`, bo'sh rasm ro'yxati rad etilishi,
+  **bir nechta rasm bitta so'rovda alohida `image_url` bloklar sifatida
+  yuborilishi**.
 - `modules/inventory/costing.util.spec.ts` (8) — moving average formulasi.
 - `modules/settings/rounding.util.spec.ts` (5) — NONE/R10/R100/R1000,
   yaxlitlash yo'nalishi, aniq qiymat.
@@ -454,7 +469,7 @@ ushlandi (ikkalasi ham endi tuzatilgan, testlar bilan qoplangan):
 - `modules/telegram-bot/agent/agent.service.spec.ts` (4) — tool-calling
   sikli, iteratsiya chegarasi, rate-limit (soxta OpenAI client bilan).
 
-**E2E** (56 test, `apps/api/test/*.e2e-spec.ts`, real Postgres kerak):
+**E2E** (62 test, `apps/api/test/*.e2e-spec.ts`, real Postgres kerak):
 
 | Fayl | Tekshiradi |
 |---|---|
@@ -474,8 +489,9 @@ ushlandi (ikkalasi ham endi tuzatilgan, testlar bilan qoplangan):
 | `reports.e2e-spec.ts` | `/reports/dashboard` shakli, `/reports/dead-stock` sotilmagan tovarni topishi, `/reports/stock-value` shakli o'zgarmaganligi (regression) |
 | `suppliers.e2e-spec.ts` | `contactPerson` saqlanishi, `totalPurchase` faqat POSTED kirimlardan hisoblanishi (qoralama hisobga kirmasligi) |
 | `loyalty.e2e-spec.ts` | Ball qo'shilishi/o'chirilgan holatda qo'shilmasligi, qaytarishda proporsional qaytishi, karta generatsiyasi/lookup, **redeem: to'lash+topish birga, balansdan oshirib bo'lmasligi, mijozsiz rad etilishi, qaytarishda proporsional ball qaytishi** |
-| `bot-service.e2e-spec.ts` | `BotService`ni to'g'ridan-to'g'ri chaqirib (HTTP'siz): register idempotentligi, telefon bo'yicha mavjud mijozga bog'lanishi, owner-link kodi bir martalik ekanligi, tovar qidirish |
+| `bot-service.e2e-spec.ts` | `BotService`ni to'g'ridan-to'g'ri chaqirib (HTTP'siz): register idempotentligi, telefon bo'yicha mavjud mijozga bog'lanishi, owner-link kodi bir martalik ekanligi, tovar qidirish, **OCR: matched qatorlardan DRAFT yaratish, unresolved matnlar `note`da qolishi** (`OPENAI_CLIENT` soxta) |
 | `product-requests.e2e-spec.ts` | Waitlist so'rovi → mos kirim → outbox to'ldirilishi, boshqa tovarga tegmasligi, telegramId yo'q mijozda outbox yozilmasligi, talab hisobotida ko'rinishi |
+| `receipt-ocr.e2e-spec.ts` | `POST /receipts/ocr` (`OPENAI_CLIENT` soxta): mos tovarni topishi, **ko'p sahifali (`files` massivi) bitta so'rov sifatida qabul qilinishi**, kassir uchun 403, faylsiz 400, rasm bo'lmagan fayl 400 |
 
 Ishga tushirish: `pnpm --filter @barakasell/api test` (unit),
 `pnpm --filter @barakasell/api test:e2e` (integratsiya, Postgres kerak:
@@ -695,12 +711,119 @@ hujjat darajasida bitta tranzaksiya, `lockProducts()` bilan sortirovka
 qilingan lock, audit — `@Audit()` dekorator yoki tranzaksiya ichida
 `AuditService.write(tx, ...)`.
 
-### 3. AI bilan kirim (chek/faktura) OCR
+---
 
-Boshida muhokama qilingan, ataylab keyingi milestone'ga qoldirilgan:
-chek/накладной rasmini Vision model bilan o'qib, `Receipt` draft'ini
-avtomatik to'ldirish, fuzzy SKU moslashtirish, narx anomaliyasi
-ogohlantirishi. Hozircha kod yo'q.
+## Kirim (chek/faktura) AI OCR (2026-09-23, tugallandi)
+
+Faktura/накладной rasmini vision model bilan o'qib, `Receipt` DRAFT'ini
+avtomatik to'ldiradi. **Hech qachon avtomatik POST qilmaydi** — inson
+tekshirib tasdiqlaydi.
+
+Provider: **OpenAI** (`gpt-4o`, `.env`dagi `OPENAI_VISION_MODEL` bilan
+o'zgartiriladi), DeepSeek EMAS — DeepSeek hosted API'sida rasm kirishi
+(vision) yo'q, faqat matn. Telegram matn agenti DeepSeek'da o'zgarishsiz
+qoladi; ikkalasi bir xil `openai` SDK, faqat `baseURL`/kalit boshqa
+(`modules/receipt-ocr/openai.provider.ts`, `deepseek.provider.ts` bilan
+bir xil factory pattern).
+
+- **`modules/receipt-ocr/`** — yangi modul:
+  - `receipt-ocr.service.ts` — rasmni base64 qilib vision modelga yuboradi
+    (`response_format: json_object`, qo'lda validatsiya qilinadi — zod
+    yo'q), natijani `ocr-match.util.ts` bilan katalogdagi tovarlarga
+    moslashtiradi.
+  - `ocr-match.util.ts` — sof funksiyalar (DB'siz, to'liq unit-testlangan):
+    token-set Dice koeffitsienti + SKU bonus bilan skorlash (`scoreMatch`),
+    uchta bucket — `matched`(≥0.6)/`uncertain`(≥0.35)/`unmatched`
+    (`matchLine`), birlik moslashtirish bazaga fallback bilan
+    (`resolveUnit`), ikkita narx ogohlantirishi — hisoblangan summa vs
+    chekdagi summa, hisoblangan tannarx vs joriy `avgCost` (`priceWarnings`).
+  - Tovar nomzodlari — har qator uchun alohida so'rov EMAS, barcha faol
+    tovar bir marta (`ProductsService.findAll()` cursor bilan sahifalab,
+    max 1000 tagacha) olinib JS'da moslashtiriladi — `ReportsService`dagi
+    "Lite hajm uchun JS reduce yetarli" qarori bilan bir xil.
+  - `POST /receipts/ocr` (`@Roles(ADMIN)`, `FilesInterceptor('files', 10)`,
+    har fayl 8 MB, faqat `image/*`) — **taklif qaytaradi, DB'ga hech narsa
+    yozmaydi**: har qator uchun xom matn, topilgan tovar (yoki `null`),
+    nomzodlar ro'yxati, holat, ogohlantirishlar. Admin buni ko'rib chiqib
+    tasdiqlagach mavjud `POST /receipts` chaqiriladi — `ReceiptsService`
+    va `resolveLines()`ga umuman tegilmagan. **Ko'p rasm bir so'rovda** —
+    `parse(images: OcrImage[])`, hammasi bitta vision so'roviga (bir nechta
+    `image_url` blok) yuboriladi, ko'p sahifali faktura uchun.
+- **Admin UI** (`receipts/[id]/page.tsx`): "Rasmdan to'ldirish" tugmasi
+  (`+ Qator qo'shish` yonida, DRAFT holatda) — ikki bosqichli modal
+  (`OcrModal`, `users/page.tsx`dagi `ResetPinModal` patterni bo'yicha):
+  yuklash → ko'rib chiqish jadvali (har qatorda `ProductSelect`, holat
+  tegi — matched/uncertain/unmatched, ogohlantirishlar, checkbox bilan
+  qo'shish/qo'shmaslik). `unmatched` qatorlar default'da o'chirilgan.
+  Tasdiqlangach mavjud `saveDraft()` oqimiga qo'shiladi — o'zi hech narsa
+  saqlamaydi. `lib/api.ts`ga `postForm()` qo'shildi (FormData uchun
+  `Content-Type`ni qo'ymaslik kerak, brauzer o'zi boundary bilan qo'yadi).
+  **Yuklash UX** (2026-09-23, ikkinchi iteratsiya): fayl input o'rniga
+  drag-drop zonasi + **clipboard paste** (`window` `paste` eventi, faqat
+  `step==='upload'`da tirik — rasmni istalgan joydan nusxalab shu yerda
+  Ctrl+V qilish mumkin, masalan Telegram Desktop'da nusxalangan surat) +
+  bir nechta fayl (`MAX_OCR_FILES=10`, backend limiti bilan bir xil),
+  har biri kichik preview (`URL.createObjectURL`, o'chirilganda/modal
+  yopilganda `revokeObjectURL` bilan tozalanadi) va o'chirish tugmasi bilan.
+
+  **Ikkita bug tuzatildi (2026-09-23, uchinchi iteratsiya):**
+  1. **"Birlik" select bo'sh chiqardi** — sabab: OCR moslashtirgan tovar
+     o'zining `ProductSelect`ida hech qachon ochilmagani uchun
+     (avtomatik tanlangan, foydalanuvchi dropdown'ni bosmagan)
+     sahifaning umumiy `products` state'iga qo'shilmas edi —
+     `unitsFor(productId)` topolmay, asosiy jadvaldagi birlik `<select>`i
+     variantsiz qolardi. Tuzatish: `OcrModal.apply()` endi tanlangan
+     qatorlardagi har bir noyob `productId` uchun `GET /products/:id`ni
+     to'liq (units bilan) chaqiradi (`load()`dagi mavjud "missingIds"
+     patterni bilan bir xil), natijani `onApply`ning uchinchi argumenti
+     sifatida yuboradi, sahifa buni `handleProductsLoaded()` orqali
+     mavjud `products`ga qo'shadi — endi variant bor.
+  2. **Kirill/lotin mos kelmasligi** — faktura rasmi kirill alifbosida
+     (yoki ruscha) bo'lsa, katalog lotin alifbosidagi nomlarga mos
+     kelmay, hamma narsa `unmatched` chiqardi. Ikki qatlamli tuzatish:
+     - **Asosiy**: `receipt-ocr.service.ts`dagi `PROMPT`ga aniq
+       ko'rsatma qo'shildi — AI kirill matnni lotinga o'giradi,
+       xalqaro brendlar uchun ularning HAQIQIY yozilishini ishlatadi
+       (masalan "Кока-Кола" -> "Coca-Cola", harf-baharf emas), oddiy
+       so'zlar uchun standart o'zbekcha transliteratsiya qiladi.
+     - **Zaxira**: `ocr-match.util.ts`da `normalize()`ga kirill->lotin
+       harf xaritasi qo'shildi (`CYRILLIC_TO_LATIN`) — AI to'liq
+       transliteratsiya qilmasa ham, moslashtirish funksiyasi o'zi
+       ikkala skriptni bir xil ko'rinishga keltiradi. Ikkala tomonga
+       ham (OCR matni VA katalog nomi) qo'llanadi, shuning uchun qaysi
+       tomon qaysi alifboda bo'lishidan qat'i nazar ishlaydi.
+- **Telegram bot**: egasi (faqat `role==='owner'`, mijoz emas) rasm
+  yuborsa — botda ko'rib chiqish UI'i yo'qligi sababli **to'g'ridan-to'g'ri
+  DRAFT yaratadi** (baribir POST qilinmaydi). `matched` qatorlar
+  `Receipt`ga yoziladi, `uncertain`/`unmatched` xom matnlari yo'qolib
+  ketmasin deb `note`ga yoziladi. Yangi `flows/receipt-photo.flow.ts`
+  (`bot.on('message:photo')`, `registerAgentFlow`dan oldin ro'yxatga
+  olinadi), 2 rasm/daqiqa rate-limit. `ctx.getFile()` grammY'ning o'zi
+  eng katta o'lchamli rasmni tanlaydi. `BotService.ocrReceiptDraft()` —
+  buning uchun `ReceivingModule`dan `ReceiptsService` eksport qilindi.
+  **Bir nechta rasm (ko'p sahifali faktura)**: `ReceiptOcrService.parse()`
+  endi `OcrImage[]` qabul qiladi — bitta vision so'roviga bir nechta
+  `image_url` blok qo'shiladi, promptga "bu sahifalar bitta faktura,
+  takrorlangan qatorlarni bittalab hisobla" degan qo'shimcha yo'riqnoma
+  kiritiladi (`MULTI_PAGE_NOTE`). Telegram albom (bir nechta rasm bitta
+  xabar guruhida, `media_group_id`) alohida `message:photo` yangilanishlar
+  sifatida keladi — `receipt-photo.flow.ts` shu `media_group_id` bo'yicha
+  1.5 soniya debounce bilan buferlab, oxirgi rasmdan keyin BITTA OCR
+  so'roviga birlashtiradi (shu bilan bitta DRAFT chiqadi, bir nechtaga
+  bo'linib ketmaydi). Alohida-alohida (albomsiz) yuborilgan rasmlar hali
+  ham har biri mustaqil DRAFT — bu ataylab shunday, chunki ular orasida
+  bog'liqlik borligini bilishning yo'li yo'q.
+- **`multer`** to'g'ridan-to'g'ri dependency sifatida qo'shildi (`^2.2.0`,
+  `@nestjs/platform-express`ning versiyasiga mos) — pnpm strict
+  node_modules'da faqat tranzitiv paketni `import`lab bo'lmaydi.
+  `@types/multer` devDependency ham qo'shildi.
+- Testlar: `ocr-match.util.spec.ts` (15), `receipt-ocr.service.spec.ts`
+  (4) — unit; `receipt-ocr.e2e-spec.ts` (4) va `bot-service.e2e-spec.ts`ga
+  qo'shilgan 1 ta test — `OPENAI_CLIENT`ni soxta client bilan
+  `overrideProvider` qilib, haqiqiy Postgres'ga ulanadi.
+- `.env`/`​.env.example`: `OPENAI_API_KEY` (majburiy — bo'lmasa server
+  ko'tarilishda `getOrThrow` bilan yiqiladi), `OPENAI_VISION_MODEL`
+  (ixtiyoriy).
 
 ---
 

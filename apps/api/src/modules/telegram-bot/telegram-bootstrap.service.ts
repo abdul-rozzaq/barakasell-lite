@@ -9,6 +9,7 @@ import { registerStartFlow } from './flows/start.flow.js';
 import { registerMenuFlow } from './flows/menu.flow.js';
 import { registerCardFlow } from './flows/card.flow.js';
 import { registerOwnerLinkFlow } from './flows/owner-link.flow.js';
+import { registerReceiptPhotoFlow } from './flows/receipt-photo.flow.js';
 import { registerAgentFlow } from './flows/agent.flow.js';
 
 // Wires the flows onto the shared Bot instance and points Telegram at our
@@ -31,6 +32,7 @@ export class TelegramBootstrapService implements OnModuleInit {
     registerMenuFlow(this.bot, this.botService, this.session);
     registerCardFlow(this.bot, this.botService, this.session);
     registerOwnerLinkFlow(this.bot, this.botService, this.session);
+    registerReceiptPhotoFlow(this.bot, this.botService, this.session);
     registerAgentFlow(this.bot, this.agent, this.session);
     this.bot.catch((err) => this.logger.error('Bot xatosi', err));
 

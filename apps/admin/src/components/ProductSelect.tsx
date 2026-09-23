@@ -182,17 +182,24 @@ export function ProductSelect({
   const displayLabel = currentItem?.name || selectedName || (value ? value : placeholder);
 
   return (
-    <div ref={containerRef} className={`relative inline-block w-full min-w-[200px] text-left ${className}`}>
+    <div
+      ref={containerRef}
+      className={`relative inline-block w-full min-w-50 text-left ${className}`}
+    >
       {/* Trigger Button */}
       <button
         type="button"
         onClick={handleOpen}
         disabled={disabled}
         className={`w-full h-9 px-2.5 flex items-center justify-between border border-divider bg-white text-sm text-left transition-colors outline-none ${
-          disabled ? "bg-surface cursor-not-allowed opacity-70" : "hover:border-accent focus:border-accent"
+          disabled
+            ? "bg-surface cursor-not-allowed opacity-70"
+            : "hover:border-accent focus:border-accent"
         }`}
       >
-        <span className={`truncate mr-2 ${!value && !selectedName ? "text-text/40" : "text-text font-medium"}`}>
+        <span
+          className={`truncate mr-2 ${!value && !selectedName ? "text-text/40" : "text-text font-medium"}`}
+        >
           {displayLabel}
         </span>
         <svg
@@ -207,7 +214,7 @@ export function ProductSelect({
 
       {/* Dropdown Popover */}
       {isOpen && (
-        <div className="absolute left-0 top-full mt-1 w-full min-w-[280px] bg-white border border-divider shadow-lg z-50">
+        <div className="absolute left-0 top-full mt-1 w-full min-w-70 bg-white border border-divider shadow-lg z-50">
           {/* Search Input */}
           <div className="p-2 border-b border-divider bg-surface">
             <div className="relative flex items-center">
@@ -225,7 +232,12 @@ export function ProductSelect({
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
               </svg>
               {search && (
                 <button
@@ -253,9 +265,7 @@ export function ProductSelect({
             )}
 
             {!loading && items.length === 0 && (
-              <div className="p-4 text-center text-xs text-text/50">
-                Tovar topilmadi
-              </div>
+              <div className="p-4 text-center text-xs text-text/50">Tovar topilmadi</div>
             )}
 
             {items.map((product) => {
@@ -265,12 +275,16 @@ export function ProductSelect({
                   key={product.id}
                   onClick={() => handleSelect(product)}
                   className={`px-3 py-2 cursor-pointer transition-colors flex items-center justify-between text-xs ${
-                    isSelected ? "bg-accent-tint-bg font-semibold text-accent-tint-text" : "hover:bg-black/[0.03]"
+                    isSelected
+                      ? "bg-accent-tint-bg font-semibold text-accent-tint-text"
+                      : "hover:bg-black/3"
                   }`}
                 >
                   <div className="truncate pr-2">
                     <span className="block truncate">{product.name}</span>
-                    {product.sku && <span className="text-[10px] text-text/50">SKU: {product.sku}</span>}
+                    {product.sku && (
+                      <span className="text-[10px] text-text/50">SKU: {product.sku}</span>
+                    )}
                   </div>
                   {product.units?.[0] && (
                     <span className="text-[11px] text-text/60 shrink-0">
