@@ -41,6 +41,14 @@ describe('Reports (e2e)', () => {
     expect(res.body).toHaveProperty('todayRevenue');
     expect(res.body).toHaveProperty('todayProfit');
     expect(res.body).toHaveProperty('openShiftsCount');
+    expect(res.body).toHaveProperty('totalProducts');
+    expect(res.body).toHaveProperty('totalCategories');
+    expect(res.body).toHaveProperty('totalStockCostValue');
+    expect(res.body).toHaveProperty('totalStockSaleValue');
+    expect(res.body).toHaveProperty('expectedProfit');
+    expect(res.body).toHaveProperty('todaySalesCount');
+    expect(res.body).toHaveProperty('avgCheckAmount');
+    expect(res.body).toHaveProperty('totalCustomerDebt');
     expect(Array.isArray(res.body.topProducts)).toBe(true);
     expect(Array.isArray(res.body.lowStock)).toBe(true);
     expect(Array.isArray(res.body.recentShifts)).toBe(true);

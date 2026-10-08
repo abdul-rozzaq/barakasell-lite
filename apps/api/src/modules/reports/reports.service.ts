@@ -60,6 +60,11 @@ export class ReportsService {
       openShiftsCount,
       lowStock,
       recentShifts,
+      totalProducts,
+      totalCategories,
+      todaySalesCount,
+      customerDebtAgg,
+      productsForValue,
     ] = await Promise.all([
       this.prisma.sale.findMany({
         where: { soldAt: { gte: today }, status: 'COMPLETED' },
@@ -87,6 +92,20 @@ export class ReportsService {
         orderBy: { openedAt: 'desc' },
         take: 10,
       }),
+      this.prisma.product.count({ where: { isActive: true } }),
+      this.prisma.category.count(),
+      this.prisma.sale.count({
+        where: { soldAt: { gte: today }, status: 'COMPLETED' },
+      }),
+      this.prisma.customer.aggregate({ _sum: { debtBalance: true } }),
+      this.prisma.product.findMany({
+        where: { isActive: true },
+        select: {
+          stock: true,
+          avgCost: true,
+          units: { where: { isBase: true }, select: { price: true }, take: 1 },
+        },
+      }),
     ]);
 
     // Approximation: subtotal-discount minus COGS, ignoring the (typically
@@ -100,6 +119,25 @@ export class ReportsService {
       (acc, s) => acc.plus(s.total).minus(s.cogsTotal),
       new Prisma.Decimal(0),
     );
+
+    // Inventory valuation: cost value and potential sale value
+    let totalStockCostValue = new Prisma.Decimal(0);
+    let totalStockSaleValue = new Prisma.Decimal(0);
+    for (const p of productsForValue) {
+      totalStockCostValue = totalStockCostValue.plus(p.stock.times(p.avgCost));
+      const salePrice = p.units[0]?.price ?? new Prisma.Decimal(0);
+      totalStockSaleValue = totalStockSaleValue.plus(p.stock.times(salePrice));
+    }
+    const expectedProfit = totalStockSaleValue.minus(totalStockCostValue);
+
+    // Average check: todayRevenue / todaySalesCount (0 if no sales)
+    const avgCheckAmount =
+      todaySalesCount > 0
+        ? todayRevenue.dividedBy(todaySalesCount).toDecimalPlaces(0)
+        : new Prisma.Decimal(0);
+
+    const totalCustomerDebt =
+      customerDebtAgg._sum.debtBalance ?? new Prisma.Decimal(0);
 
     const productTotals = new Map<
       string,
@@ -141,6 +179,14 @@ export class ReportsService {
       todayProfit,
       todayCashDiff: closedShiftsToday._sum.diffCash ?? new Prisma.Decimal(0),
       openShiftsCount,
+      totalProducts,
+      totalCategories,
+      totalStockCostValue,
+      totalStockSaleValue,
+      expectedProfit,
+      todaySalesCount,
+      avgCheckAmount,
+      totalCustomerDebt,
       topProducts,
       lowStock,
       recentShifts: recentShifts.map((s) => ({

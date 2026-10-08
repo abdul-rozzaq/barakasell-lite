@@ -1,17 +1,24 @@
 # BarakaSELL Lite — progress
 
-Oxirgi yangilanish: 2026-09-23. To'liq spec: `plan/plan.md`. Dizayn handoff:
+Oxirgi yangilanish: 2026-10-08. To'liq spec: `plan/plan.md`. Dizayn handoff:
 `plan/design_handoff_barakasell_lite/README.md`.
 
 ## Holat
 
-**2-milestone (sotuv oqimi), admin'ning barcha rejalashtirilgan sahifalari
-va 3-milestone (loyalty + Telegram bot + AI agent + waitlist) to'liq
-tugallandi.** Kirim, inventarizatsiya, smena, sotuv (aralash to'lov +
-nasiya + ball bilan to'lash), qaytarish — backend to'liq ishlaydi va test
-qilingan (56+ e2e test). POS'ning barcha 10 ekrani ishlaydi — offline
-savat+navbat va barcha PIN-gated amallar brauzerda qo'lda tasdiqlangan.
-Admin'da barcha 9 sahifa tayyor va tasdiqlangan.
+**2-milestone (sotuv oqimi), admin'ning barcha rejalashtirilgan sahifalari,
+3-milestone (loyalty + Telegram bot + AI agent + waitlist) va Dashboard
+kengaytirilgan biznes ko'rsatkichlari to'liq tugallandi.** Kirim, inventarizatsiya,
+smena, sotuv (aralash to'lov + nasiya + ball bilan to'lash), qaytarish —
+backend to'liq ishlaydi va test qilingan (65 unit test + 62 e2e test). POS'ning
+barcha 10 ekrani ishlaydi — offline savat+navbat va barcha PIN-gated amallar
+brauzerda qo'lda tasdiqlangan. Admin'da barcha 11 sahifa tayyor va tasdiqlangan.
+
+**Yangi (2026-10-08)**: Admin Dashboard kengaytirilgan ko'rsatkichlar bilan
+to'liq boyitildi — umumiy tovarlar soni, ombor zaxirasining xarid tannarxi,
+kutilayotgan sotuv summasi va kutilayotgan foyda (rentabellik foizi bilan),
+bugungi savdo aylanmasi, bugungi sof foyda va marja, bugungi cheklar soni,
+o'rtacha chek summasi, umumiy mijozlar qarzi (nasiyalar) va kategoriyalar soni.
+Batafsil: pastdagi "Admin UI" bo'limida.
 
 **Yangi (3-milestone)**: mijozlar loyalty ball to'playdi va POS'da
 ishlatadi, Telegram bot (`apps/api/src/modules/telegram-bot`, **alohida
@@ -37,7 +44,7 @@ Monorepo: pnpm workspace, root'da `docker-compose.yml` (Postgres 16, port
 apps/
   api/     — NestJS + Prisma + Postgres: ombor + sotuv + hisobot + loyalty +
              Telegram bot + AI agent (hammasi shu process ichida)
-  admin/   — Next.js 16 (barcha 9 sahifa ishlaydi, Excel import bundan mustasno)
+  admin/   — Next.js 16 (barcha 11 sahifa ishlaydi, Excel import bundan mustasno)
   pos/     — Vite React + Tailwind v4 + PWA (barcha 10 ekran ishlaydi)
 ```
 
@@ -511,10 +518,14 @@ tegilmaydi.
 (ro'yxat), `/receipts/[id]` (`id==="new"` — yaratish rejimi ham shu sahifada).
 
 **Sotuv oqimiga oid 6 sahifa** (endi tayyor, brauzerda tasdiqlangan):
-- `/dashboard` — 4 KPI karta (`CornerMarks` birinchi marta ishlatildi),
-  top sotilgan/kam qolgan ro'yxatlari, oxirgi smenalar jadvali. Bitta
-  `GET /reports/dashboard` chaqiruvi. Login'dan keyingi va bosh `/`
-  redirect endi shu sahifaga (`/products`dan o'zgardi).
+- `/dashboard` — kengaytirilgan biznes va savdo monitoring paneli (12 ta ko'rsatkich
+  kartasi 3 ta mantiqiy blokda: Ombor/tovarlar zaxirasi [tovarlar soni, ombor tannarxi,
+  kutilayotgan tushum, kutilayotgan foyda va rentabellik], Bugungi savdo [tushum,
+  sof foyda, cheklar soni, o'rtacha chek], Kassa va moliyaviy holat [naqd pul farqi,
+  ochiq smenalar, mijozlar qarzi, kategoriyalar]). Top sotilgan va qoldig'i kam qolgan
+  tovarlar ro'yxati, oxirgi smenalar jadvali, tezkor navigatsiya linklari va ma'lumotlarni
+  yangilash imkoniyati. Bitta optimallashtirilgan `GET /reports/dashboard` chaqiruvi.
+  Login'dan keyingi va bosh `/` redirect endi shu sahifaga (`/products`dan o'zgardi).
 - `/customers` — master/detail mijozlar+nasiya, POS'dagi bilan **bir xil**
   `Customer`/`CustomerDebtEntry` ma'lumotiga ulanadi (POS'da yaratilgan
   qarz shu yerda ko'rinadi — qo'lda tasdiqlangan). **Loyalty**: ball
@@ -542,8 +553,9 @@ tegilmaydi.
   uchun `Supplier`ga `contactPerson` maydoni qo'shildi (migration
   `add_supplier_contact_person`).
 
-Navigatsiya: `(protected)/layout.tsx`dagi `NAV` massivi 9 punktga o'sdi
-(Dashboard birinchi). Rol himoyasi: `user.role !== 'ADMIN'` bo'lsa to'liq
+Navigatsiya: `(protected)/layout.tsx`dagi `NAV` massivi 11 punkt (Dashboard,
+Tovarlar, Kategoriyalar, Kirimlar, Yetkazib beruvchilar, Sotuvlar, Mijozlar,
+Hisobotlar, Audit, Foydalanuvchilar, Sozlamalar). Rol himoyasi: `user.role !== 'ADMIN'` bo'lsa to'liq
 ekranli "Ruxsat yo'q" (amaliyotda kassir admin login formasidan token
 ololmaydi, bu qo'shimcha himoya qatlami).
 
